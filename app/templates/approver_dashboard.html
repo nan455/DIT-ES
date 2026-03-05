@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Approver Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        .btn-warning {
+    background-color: #ffc107;
+    color: #000;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-warning:hover {
+    background-color: #e0a800;
+}
+
+.edit-rejected-btn {
+    margin-left: 5px;
+}
+
+        :root {
+            --primary: #1e5a8e;
+            --primary-dark: #14436b;
+            --secondary: #fbbf24;
+            --success: #10b981;
+            --warning: #fbbf24;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --dark: #0c3d5d;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-900: #0f172a;
+            --border-radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #1e5a8e;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            color: var(--gray-900);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .status-badge {
+    padding: 0.375rem 0.875rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.status-pending {
+    background: #fed7aa;
+    color: #92400e;
+}
+
+.status-approved {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-rejected {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+        .header {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-lg);
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .logo {
+            height: 100px;
+            width: 100px;
+            object-fit: contain;
+        }
+
+        .header-content {
+            text-align: center;
+        }
+
+        .header-content h1 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        /* User Dropdown Styles */
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: var(--gray-50);
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+            min-width: 200px;
+        }
+
+        .user-info:hover {
+            background: var(--gray-100);
+            border-color: var(--gray-300);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1.125rem;
+            flex-shrink: 0;
+        }
+
+        .user-details {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--gray-900);
+            font-size: 0.875rem;
+        }
+
+        .user-role {
+            font-size: 0.75rem;
+            color: var(--gray-600);
+        }
+
+        .dropdown-icon {
+            color: var(--gray-600);
+            font-size: 0.75rem;
+            transition: transform 0.2s;
+        }
+
+        .user-info.active .dropdown-icon {
+            transform: rotate(180deg);
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid var(--gray-200);
+            min-width: 280px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .user-dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-header {
+            padding: 1.25rem;
+            border-bottom: 2px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .dropdown-header .user-avatar {
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+        }
+
+        .dropdown-header-info h4 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.25rem;
+        }
+
+        .dropdown-header-info p {
+            font-size: 0.75rem;
+            color: var(--gray-600);
+        }
+
+        .dropdown-menu {
+            padding: 0.5rem;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1rem;
+            color: var(--gray-700);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.2s;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .dropdown-item:hover {
+            background: var(--gray-50);
+            color: var(--gray-900);
+        }
+
+        .dropdown-item i {
+            width: 1.25rem;
+            font-size: 1rem;
+        }
+
+        .dropdown-item.logout {
+            color: var(--danger);
+            border-top: 1px solid var(--gray-100);
+            margin-top: 0.5rem;
+        }
+
+        .dropdown-item.logout:hover {
+            background: #fee2e2;
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 2rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--gray-100);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f6f8fb 0%, #ffffff 100%);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 2px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            color: white;
+        }
+
+        .stat-pending .stat-icon { background: #fbbf24; }
+        .stat-approved .stat-icon { background: #10b981; }
+        .stat-rejected .stat-icon { background: #ef4444; }
+
+        .stat-content {
+            flex: 1;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table thead {
+            background: var(--dark);
+        }
+
+        .table thead th {
+            padding: 1rem;
+            text-align: center;
+            font-weight: 600;
+            color: white;
+        }
+
+        .table tbody tr {
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .table tbody tr:hover {
+            background: var(--gray-50);
+        }
+
+        .table tbody td {
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .badge {
+            padding: 0.375rem 0.875rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .badge-pending {
+            background: #fed7aa;
+            color: #92400e;
+        }
+
+        .badge-approved {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-info {
+            background: var(--info);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+
+        .action-group {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        .input {
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            max-width: 300px;
+        }
+
+        .search-input {
+            padding-left: 2.5rem;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 0.75rem center;
+            background-size: 1.25rem;
+        }
+
+        /* Profile Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: var(--shadow-xl);
+        }
+
+        .modal-header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--gray-100);
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid var(--gray-100);
+        }
+
+        .profile-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .profile-row span {
+            color: var(--gray-600);
+            font-size: 14px;
+        }
+
+        .profile-row strong {
+            color: var(--gray-900);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--gray-700);
+            font-size: 0.875rem;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--gray-700);
+            border: 2px solid var(--gray-300);
+        }
+
+        .btn-ghost:hover {
+            background: var(--gray-50);
+            border-color: var(--gray-400);
+        }
+
+        .btn-primary {
+            background: var(--secondary);
+            color: var(--dark);
+            font-weight: 700;
+        }
+
+        /* ── FILTER TABS ── */
+        .filter-tabs {
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.25rem;
+        }
+
+        .filter-tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.55rem 1.25rem;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 2px solid transparent;
+            background: #f1f5f9;
+            color: #64748b;
+            transition: all 0.18s ease;
+            user-select: none;
+        }
+
+        .filter-tab:hover {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .filter-tab .tab-icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            transition: all 0.18s;
+        }
+
+        .filter-tab .tab-count {
+            background: rgba(0,0,0,.08);
+            border-radius: 999px;
+            padding: .1rem .45rem;
+            font-size: .7rem;
+            font-weight: 700;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        /* ALL */
+        .filter-tab.tab-all.active,
+        .filter-tab.tab-all:hover {
+            background: #1e5a8e;
+            color: white;
+            border-color: #1e5a8e;
+        }
+        .filter-tab.tab-all .tab-icon { background: #fbbf24; color: #7c3a00; }
+        .filter-tab.tab-all.active .tab-count { background: rgba(255,255,255,.25); }
+
+        /* PENDING */
+        .filter-tab.tab-pending.active,
+        .filter-tab.tab-pending:hover {
+            background: #fffbeb;
+            color: #92400e;
+            border-color: #fcd34d;
+        }
+        .filter-tab.tab-pending .tab-icon { background: #fde68a; color: #92400e; font-size:.8rem; }
+        .filter-tab.tab-pending.active .tab-count { background: #fde68a; color: #92400e; }
+
+        /* APPROVED */
+        .filter-tab.tab-approved.active,
+        .filter-tab.tab-approved:hover {
+            background: #f0fdf4;
+            color: #065f46;
+            border-color: #6ee7b7;
+        }
+        .filter-tab.tab-approved .tab-icon { background: #d1fae5; color: #059669; }
+        .filter-tab.tab-approved.active .tab-count { background: #a7f3d0; color: #065f46; }
+
+        /* REJECTED */
+        .filter-tab.tab-rejected.active,
+        .filter-tab.tab-rejected:hover {
+            background: #fff1f2;
+            color: #991b1b;
+            border-color: #fca5a5;
+        }
+        .filter-tab.tab-rejected .tab-icon { background: #fee2e2; color: #dc2626; }
+        .filter-tab.tab-rejected.active .tab-count { background: #fecaca; color: #991b1b; }
+
+        /* ── PAGINATION ── */
+        .pagination-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 1.25rem;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .pagination-info {
+            font-size: 0.8rem;
+            color: var(--gray-600);
+        }
+
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .page-btn {
+            min-width: 34px;
+            height: 34px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 6px;
+            background: white;
+            color: var(--gray-700);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            padding: 0 8px;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: var(--gray-100);
+            border-color: #94a3b8;
+        }
+
+        .page-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .page-size-select {
+            padding: 0.35rem 0.6rem;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            color: var(--gray-700);
+            background: white;
+            cursor: pointer;
+        }
+
+        /* ── CARD HEADER TOOLBAR ── */
+        .card-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-search {
+            padding: 0.5rem 0.875rem 0.5rem 2.25rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            max-width: 240px;
+            width: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 0.625rem center;
+            background-size: 1.1rem;
+            transition: border-color 0.2s;
+        }
+
+        .toolbar-search:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(30,90,142,0.1);
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinning { animation: spin 0.7s linear infinite; }
+
+        @media (max-width: 968px) {
+            .header {
+                grid-template-columns: auto 1fr;
+                gap: 1rem;
+            }
+
+            .header-content {
+                grid-column: 1 / -1;
+            }
+
+            .user-info {
+                grid-column: 1 / -1;
+                justify-self: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="/static/images/py_logo.jpeg" alt="Logo" class="logo">
+            
+            <div class="header-content">
+                <h1>DIRECTORATE OF ECONOMICS AND STATISTICS</h1>
+               <h1 style="color: #cc6600;">பொருளாதாரம் மற்றும் புள்ளியியல் இயக்ககம்</h1>
+            </div>
+            
+            <div class="user-info" onclick="toggleUserDropdown()">
+                <div class="user-avatar" id="userAvatar">A</div>
+                <div class="user-details">
+                    <div class="user-name" id="userName">Approver</div>
+                    <div class="user-role" id="userRole">Approver</div>
+                </div>
+                <i class="fas fa-chevron-down dropdown-icon"></i>
+                
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="dropdown-header">
+                        <div class="user-avatar" id="dropdownAvatar">A</div>
+                        <div class="dropdown-header-info">
+                            <h4 id="dropdownUserName">Approver</h4>
+                            <p id="dropdownUserRole">Approver</p>
+                        </div>
+                    </div>
+                    <div class="dropdown-menu">
+                        <button class="dropdown-item" onclick="viewProfile(); event.stopPropagation();">
+                            <i class="fas fa-user-circle"></i>
+                            <span>View Profile</span>
+                        </button>
+                        <button class="dropdown-item" onclick="openChangePassword(); event.stopPropagation();">
+                            <i class="fas fa-key"></i>
+                            <span>Change Password</span>
+                        </button>
+                        <button class="dropdown-item logout" onclick="logout(); event.stopPropagation();">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card stat-pending">
+                <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label">Pending</div>
+                    <div class="stat-value" id="pendingCount">0</div>
+                </div>
+            </div>
+
+            <div class="stat-card stat-approved">
+                <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label">Approved</div>
+                    <div class="stat-value" id="approvedCount">0</div>
+                </div>
+            </div>
+
+            <div class="stat-card stat-rejected">
+                <div class="stat-icon"><i class="fas fa-times-circle"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label">Rejected</div>
+                    <div class="stat-value" id="rejectedCount">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="fas fa-file-alt"></i> Upload Approval Queue
+                </div>
+                <div class="card-toolbar">
+                    <input id="searchUpload" class="toolbar-search" placeholder="Search uploads..."
+                           onkeyup="onSearch()">
+                    <button class="btn btn-info" onclick="refreshUploads()" id="refreshBtn"
+                            style="padding:.5rem 1rem;font-size:.8rem;" title="Refresh">
+                        <i class="fas fa-sync-alt" id="refreshIcon"></i> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="filter-tabs" id="filterTabs">
+                <button class="filter-tab tab-all active" onclick="setFilter('all', this)">
+                    <span class="tab-icon"><i class="fas fa-folder"></i></span>
+                    All
+                    <span class="tab-count" id="tab-count-all">0</span>
+                </button>
+                <button class="filter-tab tab-pending" onclick="setFilter('pending', this)">
+                    <span class="tab-icon"><i class="fas fa-hourglass-half"></i></span>
+                    Pending
+                    <span class="tab-count" id="tab-count-pending">0</span>
+                </button>
+                <button class="filter-tab tab-approved" onclick="setFilter('approved', this)">
+                    <span class="tab-icon"><i class="fas fa-check-circle"></i></span>
+                    Approved
+                    <span class="tab-count" id="tab-count-approved">0</span>
+                </button>
+                <button class="filter-tab tab-rejected" onclick="setFilter('rejected', this)">
+                    <span class="tab-icon"><i class="fas fa-times-circle"></i></span>
+                    Rejected
+                    <span class="tab-count" id="tab-count-rejected">0</span>
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Filename</th>
+                            <!--<th>Table Name</th>-->
+                            <th>Department</th>
+                            <th>Uploaded By</th>
+                            <th>Uploaded On</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="uploadsTable"></tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination-wrapper" id="paginationWrapper">
+                <div class="pagination-info" id="paginationInfo">Showing 0–0 of 0</div>
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                    <label style="font-size:0.8rem;color:var(--gray-600);">Rows per page:</label>
+                    <select class="page-size-select" id="pageSizeSelect" onchange="onPageSizeChange()">
+                        <option value="10" selected>10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    <div class="pagination-controls" id="paginationControls"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3 class="modal-title">My Profile</h3>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:12px;">
+                <div class="profile-row">
+                    <span>Username</span>
+                    <strong id="profileUsername"></strong>
+                </div>
+
+                <div class="profile-row">
+                    <span>Department</span>
+                    <strong id="profileDepartment"></strong>
+                </div>
+
+                <div class="profile-row">
+                    <span>Role</span>
+                    <strong id="profileRole"></strong>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeProfileModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="changePasswordModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Change Password</h3>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label">Current Password</label>
+                    <input type="password" id="currentPassword" class="input" placeholder="Enter current password">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">New Password</label>
+                    <input type="password" id="newPassword" class="input" placeholder="Enter new password">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Confirm New Password</label>
+                    <input type="password" id="confirmPassword" class="input" placeholder="Confirm new password">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeChangePasswordModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitChangePassword()">
+                    <i class="fas fa-save"></i> Update Password
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Modal -->
+    <div id="rejectModal" class="modal">
+        <div class="modal-content" style="max-width:500px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Reject Upload</h3>
+            </div>
+
+            <div style="margin-top:10px;">
+                <label style="font-weight:600;">Rejection Remark</label>
+                <textarea id="rejectRemark"
+                    placeholder="Enter reason for rejection..."
+                    style="width:100%; margin-top:8px; padding:10px;
+                           border:1px solid #d1d5db; border-radius:6px;
+                           min-height:100px;"></textarea>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeRejectModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmReject()">Reject Upload</button>
+            </div>
+        </div>
+    </div>
+
+   <script>
+/* ── GLOBALS ── */
+let uploads         = [];
+let filteredUploads = [];
+let currentUser     = {};
+let rejectUploadId  = null;
+let activeFilter    = "all";
+let currentPage     = 1;
+let pageSize        = 10;
+
+function showToast(msg, type = "success") {
+    const colors = { success: "#16a34a", error: "#dc2626", warn: "#f59e0b", info: "#2563eb" };
+    const d = document.createElement("div");
+    d.style = `position:fixed;top:20px;right:20px;background:${colors[type]};color:#fff;padding:12px 18px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.2);z-index:9999;font-weight:600`;
+    d.innerText = msg;
+    document.body.appendChild(d);
+    setTimeout(() => d.remove(), 3000);
+}
+
+function showConfirm(msg, yesFn) {
+    document.body.insertAdjacentHTML("beforeend", `
+        <div id="cfx" style="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:9999">
+            <div style="background:#fff;padding:22px 26px;border-radius:10px;text-align:center;max-width:420px">
+                <p style="margin-bottom:16px;font-size:16px">${msg}</p>
+                <button id="cfxYes" style="margin-right:10px;background:#10b981;color:#fff;padding:8px 20px;border:none;border-radius:6px;cursor:pointer">Yes</button>
+                <button id="cfxNo" style="padding:8px 20px;border:1px solid #ddd;background:#fff;border-radius:6px;cursor:pointer">Cancel</button>
+            </div>
+        </div>
+    `);
+
+    document.getElementById("cfxYes").onclick = () => {
+        document.getElementById("cfx").remove();
+        yesFn();
+    };
+    document.getElementById("cfxNo").onclick = () => document.getElementById("cfx").remove();
+}
+
+function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = text ?? "";
+    return div.innerHTML;
+}
+
+/* ===================== REJECT MODAL ===================== */
+function closeRejectModal() {
+    document.getElementById("rejectModal").classList.remove("active");
+    rejectUploadId = null;
+}
+
+/* ===================== CONFIRM REJECT (API CALL) ===================== */
+async function confirmReject() {
+    const remark = document.getElementById("rejectRemark").value.trim();
+
+    if (!remark) {
+        return showToast("Rejection remark is required", "error");
+    }
+
+    try {
+        const res = await fetch(`/uploads/${rejectUploadId}/reject_uploads`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ remark })
+        });
+
+        const out = await res.json();
+
+        if (res.ok) {
+            showToast("Upload rejected successfully", "success");
+            closeRejectModal();
+            loadUploads();
+        } else {
+            showToast(out.error || "Reject failed", "error");
+        }
+    } catch (e) {
+        showToast("Reject failed", "error");
+    }
+}
+
+/* ===================== USER INFO ===================== */
+async function loadCurrentUser() {
+    try {
+        const res = await fetch("/api/current_user", { credentials: "include" });
+        const user = await res.json();
+        currentUser = user || {};
+
+        if (user?.username) {
+            const initial = user.username.charAt(0).toUpperCase();
+            document.getElementById("userName").textContent = user.username;
+            document.getElementById("userRole").textContent = user.role || "Approver";
+            document.getElementById("userAvatar").textContent = initial;
+
+            document.getElementById("dropdownAvatar").textContent = initial;
+            document.getElementById("dropdownUserName").textContent = user.username;
+            document.getElementById("dropdownUserRole").textContent = user.role || "Approver";
+        }
+    } catch (e) {
+        console.error("Failed to load user", e);
+    }
+}
+
+/* ===================== DROPDOWN ===================== */
+function toggleUserDropdown() {
+    const dropdown = document.getElementById("userDropdown");
+    const userInfo = document.querySelector(".user-info");
+    dropdown?.classList.toggle("active");
+    userInfo?.classList.toggle("active");
+}
+
+document.addEventListener("click", function(event) {
+    const userInfo = document.querySelector(".user-info");
+    const dropdown = document.getElementById("userDropdown");
+    if (dropdown && !userInfo?.contains(event.target)) {
+        dropdown.classList.remove("active");
+        userInfo?.classList.remove("active");
+    }
+});
+
+/* ===================== PROFILE MODAL ===================== */
+function viewProfile() {
+    document.getElementById("userDropdown")?.classList.remove("active");
+    document.querySelector(".user-info")?.classList.remove("active");
+
+    document.getElementById("profileUsername").innerText = currentUser.username || "-";
+    document.getElementById("profileDepartment").innerText = currentUser.department || "-";
+    document.getElementById("profileRole").innerText = currentUser.role || "-";
+
+    document.getElementById("profileModal").classList.add("active");
+}
+
+function closeProfileModal() {
+    document.getElementById("profileModal").classList.remove("active");
+}
+
+/* ===================== PASSWORD ===================== */
+function openChangePassword() {
+    document.getElementById("userDropdown")?.classList.remove("active");
+    document.querySelector(".user-info")?.classList.remove("active");
+    document.getElementById("changePasswordModal").classList.add("active");
+}
+
+function closeChangePasswordModal() {
+    document.getElementById("changePasswordModal").classList.remove("active");
+    document.getElementById("currentPassword").value = "";
+    document.getElementById("newPassword").value = "";
+    document.getElementById("confirmPassword").value = "";
+}
+
+async function submitChangePassword() {
+    const currentPassword = document.getElementById("currentPassword")?.value;
+    const newPassword = document.getElementById("newPassword")?.value;
+    const confirmPassword = document.getElementById("confirmPassword")?.value;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        return showToast("Please fill in all fields", "error");
+    }
+    if (newPassword !== confirmPassword) {
+        return showToast("New passwords do not match", "error");
+    }
+    if (newPassword.length < 6) {
+        return showToast("Password must be at least 6 characters long", "error");
+    }
+
+    try {
+        const res = await fetch("/api/change_password", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            showToast(data.message || "Password changed!", "success");
+            closeChangePasswordModal();
+        } else {
+            showToast(data.error || "Failed to change password", "error");
+        }
+    } catch (e) {
+        showToast("Failed to change password", "error");
+    }
+}
+
+/* ===================== LOGOUT ===================== */
+function logout() {
+    document.getElementById("userDropdown")?.classList.remove("active");
+    document.querySelector(".user-info")?.classList.remove("active");
+
+    showConfirm("Are you sure you want to logout?", () => {
+        window.location.href = "/logout";
+    });
+}
+
+/* ===================== LOAD UPLOADS ===================== */
+async function loadUploads() {
+    try {
+        const res = await fetch("/api/pending_uploads", { credentials: "include" });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || "Failed");
+
+        uploads = data || [];
+
+        const pending = uploads.filter(u => u.status_ === null || u.status_ === undefined).length;
+        const approved = uploads.filter(u => u.status_ === 1).length;
+        const rejected = uploads.filter(u => u.status_ === 0).length;
+
+        document.getElementById("pendingCount").textContent = pending;
+        document.getElementById("approvedCount").textContent = approved;
+        document.getElementById("rejectedCount").textContent = rejected;
+
+        updateTabCounts();
+        applyFilterAndRender();
+    } catch (e) {
+        console.error(e);
+        showToast("Failed to load uploads", "error");
+    }
+}
+
+/* ===================== FILTER TABS ===================== */
+function setFilter(filter, btn) {
+    activeFilter = filter;
+    document.querySelectorAll(".filter-tab").forEach(t => t.classList.remove("active"));
+    btn.classList.add("active");
+    currentPage = 1;
+    applyFilterAndRender();
+}
+
+function updateTabCounts() {
+    const all      = uploads.length;
+    const pending  = uploads.filter(u => u.status_ === null || u.status_ === undefined).length;
+    const approved = uploads.filter(u => u.status_ === 1).length;
+    const rejected = uploads.filter(u => u.status_ === 0).length;
+
+    document.getElementById("tab-count-all").textContent      = all;
+    document.getElementById("tab-count-pending").textContent  = pending;
+    document.getElementById("tab-count-approved").textContent = approved;
+    document.getElementById("tab-count-rejected").textContent = rejected;
+}
+
+/* ===================== RENDER ===================== */
+// Thin wrapper called by setFilter — just re-apply and render
+function renderUploads() {
+    applyFilterAndRender();
+}
+
+/* ── ROW BUILDER ── */
+function buildUploadRow(u) {
+    const status = u.status_;
+
+    // Status badge
+    let statusBadge = "";
+    if (status === null || status === undefined) {
+        statusBadge = '<span class="badge badge-pending"><i class="fas fa-clock"></i> Pending</span>';
+    } else if (status === 1) {
+        statusBadge = '<span class="badge badge-approved"><i class="fas fa-check-circle"></i> Approved</span>';
+    } else if (status === 0) {
+        statusBadge = '<span class="badge badge-rejected"><i class="fas fa-times-circle"></i> Rejected</span>';
+    }
+
+    const canEdit    = u.can_edit    === true;
+    let   canApprove = u.can_approve === true;
+    let   canReject  = u.can_reject  === true;
+
+    // Lock approve/reject if already finalised
+    if (status === 1 || status === 0) { canApprove = false; canReject = false; }
+    if (u.has_rejected_rows === true)   canApprove = false;
+    if (u.all_rows_approved === true)   canReject  = false;
+
+    // Action buttons
+    let actions = `<div class="action-group">
+        <button class="btn btn-info" onclick="viewUpload(${u.id})">
+            <i class="fas fa-eye"></i> View
+        </button>`;
+
+    if (canEdit) {
+        actions += `<button class="btn btn-warning" onclick="editUpload(${u.id})">
+            <i class="fas fa-edit"></i> Edit
+        </button>`;
+    }
+
+    if (canApprove) {
+        actions += `<button class="btn btn-success" onclick="approveUpload(${u.id})">
+            <i class="fas fa-check"></i> Approve
+        </button>`;
+    }
+
+    if (canReject) {
+        actions += `<button class="btn btn-danger" onclick="rejectUpload(${u.id})">
+            <i class="fas fa-times"></i> Reject
+        </button>`;
+    }
+
+    actions += `</div>`;
+
+    return `<tr>
+        <td><strong>${u.id}</strong></td>
+        <td>${escapeHtml(u.filename)}</td>
+        <td>${escapeHtml(u.department)}</td>
+        <td>${escapeHtml(u.uploaded_by)}</td>
+        <td>${u.uploaded_on ? new Date(u.uploaded_on).toLocaleString() : "-"}</td>
+        <td>${statusBadge}</td>
+        <td>${actions}</td>
+    </tr>`;
+}
+
+/* ===================== APPROVE ===================== */
+async function approveUpload(id) {
+    try {
+        const checkRes = await fetch(`/api/check_upload_review_status?upload_id=${id}`, { credentials: "include" });
+        const checkData = await checkRes.json();
+
+        if (!checkRes.ok) {
+            return showToast(checkData.error || "Validation failed", "error");
+        }
+
+        // RULE 1: pending rows not allowed
+        if (checkData.has_pending) {
+            return showToast(`⚠️ Review all rows first. Pending rows: ${checkData.pending_count}`, "warn");
+        }
+
+        // RULE 2: if any rejected row => cannot approve upload
+        if (checkData.has_rejected) {
+            return showToast(`❌ Cannot approve. ${checkData.rejected_count} row(s) rejected. Please Reject the upload instead.`, "error");
+        }
+
+        showConfirm("Approve this upload?", async () => {
+            const res = await fetch('/api/approve_upload', {
+                method: 'POST',
+                credentials: "include",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ upload_id: id })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                showToast(data.message, "success");
+                loadUploads();
+            } else {
+                showToast(data.error || "Failed to approve", "error");
+            }
+        });
+
+    } catch (e) {
+        showToast("Failed to approve upload", "error");
+    }
+}
+
+/* ===================== REJECT (MERGED - SINGLE FUNCTION) ===================== */
+// ✅ FIX: This single function handles validation first, then shows the remark modal.
+// The old duplicate second definition has been removed.
+async function rejectUpload(id) {
+    try {
+        const checkRes = await fetch(`/api/check_upload_review_status?upload_id=${id}`, { credentials: "include" });
+        const checkData = await checkRes.json();
+
+        if (!checkRes.ok) {
+            return showToast(checkData.error || "Validation failed", "error");
+        }
+
+        // RULE: block if pending rows exist
+        if (checkData.has_pending) {
+            return showToast(`⚠️ Review all rows first. Pending rows: ${checkData.pending_count}`, "warn");
+        }
+
+        // ✅ Validation passed — now show the remark modal
+        rejectUploadId = id;
+        document.getElementById("rejectRemark").value = "";
+        document.getElementById("rejectModal").classList.add("active");
+
+    } catch (e) {
+        showToast("Failed to reject upload", "error");
+    }
+}
+
+/* ===================== NAVIGATION ===================== */
+function editUpload(id) {
+    const upload = uploads.find(u => u.id === id);
+    if (!upload) return;
+    window.location.href = `/view_excel_data?table=${encodeURIComponent(upload.table_name)}&mode=edit&upload_id=${id}&approval_mode=true`;
+}
+
+function viewUpload(id) {
+    const upload = uploads.find(u => u.id === id);
+    if (!upload) return;
+    window.location.href = `/view_excel_data?table=${encodeURIComponent(upload.table_name)}&mode=view&upload_id=${id}&approval_mode=true`;
+}
+
+// ── Search handler
+function onSearch() {
+    currentPage = 1;
+    applyFilterAndRender();
+}
+
+// ── Page size change
+function onPageSizeChange() {
+    pageSize    = parseInt(document.getElementById("pageSizeSelect").value);
+    currentPage = 1;
+    renderPage();
+}
+
+// ── Refresh button
+async function refreshUploads() {
+    const icon = document.getElementById("refreshIcon");
+    const btn  = document.getElementById("refreshBtn");
+    icon.classList.add("spinning");
+    btn.disabled = true;
+    try {
+        await loadUploads();
+        showToast("Refreshed", "success");
+    } finally {
+        icon.classList.remove("spinning");
+        btn.disabled = false;
+    }
+}
+
+// ── Apply tab filter + search → build filteredUploads → render
+function applyFilterAndRender() {
+    const q = (document.getElementById("searchUpload")?.value || "").trim().toLowerCase();
+
+    filteredUploads = uploads.filter(u => {
+        // Tab filter
+        if (activeFilter === "pending"  && !(u.status_ === null || u.status_ === undefined)) return false;
+        if (activeFilter === "approved" && u.status_ !== 1)  return false;
+        if (activeFilter === "rejected" && u.status_ !== 0)  return false;
+
+        // Search filter
+        if (q) {
+            const hay = [
+                String(u.id),
+                u.filename    || "",
+                u.department  || "",
+                u.uploaded_by || ""
+            ].join(" ").toLowerCase();
+            if (!hay.includes(q)) return false;
+        }
+
+        return true;
+    });
+
+    currentPage = 1;
+    renderPage();
+}
+
+// ── Render the current page slice
+function renderPage() {
+    const tbody      = document.getElementById("uploadsTable");
+    const totalItems = filteredUploads.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1)          currentPage = 1;
+
+    const start = (currentPage - 1) * pageSize;
+    const end   = Math.min(start + pageSize, totalItems);
+    const slice = filteredUploads.slice(start, end);
+
+    // Pagination info
+    document.getElementById("paginationInfo").textContent =
+        totalItems === 0 ? "No results" : `Showing ${start + 1}–${end} of ${totalItems}`;
+
+    if (!slice.length) {
+        const labels = { all:"uploads", pending:"pending uploads", approved:"approved uploads", rejected:"rejected uploads" };
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align:center;padding:3rem;color:#9ca3af">
+                    <i class="fas fa-inbox" style="font-size:2rem;margin-bottom:.75rem;display:block;opacity:.3;"></i>
+                    No ${labels[activeFilter] || "uploads"} found
+                </td>
+            </tr>`;
+    } else {
+        tbody.innerHTML = slice.map(u => buildUploadRow(u)).join("");
+    }
+
+    renderPaginationControls(totalPages);
+}
+
+// ── Pagination button strip
+function renderPaginationControls(totalPages) {
+    const ctrl = document.getElementById("paginationControls");
+    let html = "";
+
+    html += `<button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? "disabled" : ""}>
+                 <i class="fas fa-chevron-left"></i>
+             </button>`;
+
+    const win = 5;
+    let startP = Math.max(1, currentPage - Math.floor(win / 2));
+    let endP   = Math.min(totalPages, startP + win - 1);
+    if (endP - startP < win - 1) startP = Math.max(1, endP - win + 1);
+
+    if (startP > 1) {
+        html += `<button class="page-btn" onclick="goToPage(1)">1</button>`;
+        if (startP > 2) html += `<span style="align-self:center;padding:0 4px;color:var(--gray-600)">…</span>`;
+    }
+
+    for (let p = startP; p <= endP; p++) {
+        html += `<button class="page-btn ${p === currentPage ? "active" : ""}" onclick="goToPage(${p})">${p}</button>`;
+    }
+
+    if (endP < totalPages) {
+        if (endP < totalPages - 1) html += `<span style="align-self:center;padding:0 4px;color:var(--gray-600)">…</span>`;
+        html += `<button class="page-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+    }
+
+    html += `<button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? "disabled" : ""}>
+                 <i class="fas fa-chevron-right"></i>
+             </button>`;
+
+    ctrl.innerHTML = html;
+}
+
+function goToPage(page) {
+    const totalPages = Math.ceil(filteredUploads.length / pageSize) || 1;
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+    renderPage();
+    document.querySelector(".table-container")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// Legacy alias — keep filterUploads so nothing breaks if called elsewhere
+function filterUploads() { onSearch(); }
+
+/* ===================== INIT ===================== */
+window.addEventListener("DOMContentLoaded", async () => {
+    // ✅ SECURITY: Strip any URL params/hash on load — nothing in the URL should control behaviour
+    history.replaceState(null, '', window.location.pathname);
+
+    await loadCurrentUser();
+    await loadUploads();
+});
+
+// ✅ SECURITY: Block browser back/forward from exposing internal state
+window.addEventListener('popstate', () => {
+    history.replaceState(null, '', window.location.pathname);
+});
+</script>
+
+</body>
+</html>

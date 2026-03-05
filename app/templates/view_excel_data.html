@@ -1,0 +1,1640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Data Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            --border-radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0,0,0,.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            color: var(--gray-800);
+        }
+
+        .container { max-width: 1600px; margin: 0 auto; }
+
+        .card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow-xl);
+            margin-bottom: 2rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid var(--gray-100);
+        }
+
+        .header-info h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            margin-bottom: .5rem;
+        }
+
+        .header-info h1 i { color: var(--primary); }
+
+        .header-meta {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            font-size: .875rem;
+            color: var(--gray-600);
+            flex-wrap: wrap;
+        }
+
+        .meta-item { display: flex; align-items: center; gap: .5rem; }
+        .meta-item strong { color: var(--gray-900); }
+
+        .badge {
+            padding: .375rem .875rem;
+            border-radius: 9999px;
+            font-size: .75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: .375rem;
+        }
+
+        .badge-edit  { background: #fef3c7; color: #92400e; }
+        .badge-view  { background: #dbeafe; color: #1e40af; }
+
+        .controls { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; }
+
+        .btn {
+            padding: .75rem 1.25rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: .875rem;
+            cursor: pointer;
+            transition: all .2s;
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            white-space: nowrap;
+        }
+
+        .btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow); }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+        .btn-back     { background: linear-gradient(135deg,var(--gray-800),var(--gray-700)); color: white; }
+        .btn-download { background: var(--success); color: white; }
+        .btn-add      { background: var(--warning); color: white; }
+        .btn-save     { background: var(--success); color: white; }
+        .btn-delete   { background: var(--danger); color: white; padding: .5rem 1rem; font-size: .75rem; }
+        .btn-remark   { background: #7c3aed; color: white; padding: .5rem .875rem; font-size: .75rem; }
+        .btn-remark-view { background: #ddd6fe; color: #4c1d95; padding: .4rem .75rem; font-size: .72rem; border: 1px solid #c4b5fd; }
+
+        /* ── REJECTED ROW HIGHLIGHT ── */
+        tr.row-rejected { background: #fff1f2 !important; }
+        tr.row-rejected:hover { background: #ffe4e6 !important; }
+        tr.row-rejected td { border-left: 3px solid #ef4444; }
+        tr.row-rejected td:first-child { border-left: 4px solid #ef4444; }
+
+        /* ── ROW REMARK BADGE inside table ── */
+        .row-remark-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+            border-radius: 6px;
+            padding: .25rem .6rem;
+            font-size: .7rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .search-section { margin-bottom: 1.5rem; }
+
+        .search-input {
+            width: 100%;
+            max-width: 500px;
+            padding: .875rem 1rem .875rem 2.75rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: .875rem;
+            transition: all .2s;
+            background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'%3E%3C/path%3E%3C/svg%3E") no-repeat .875rem center;
+            background-size: 1.25rem;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99,102,241,.1);
+        }
+
+        .table-wrapper {
+            max-height: 65vh;
+            overflow: auto;
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+            background: white;
+        }
+
+        table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+        thead { position: sticky; top: 0; z-index: 10; }
+
+        th {
+            background: linear-gradient(135deg,var(--gray-900),var(--gray-800));
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        tbody tr { border-bottom: 1px solid var(--gray-200); transition: background .2s; }
+        tbody tr:hover { background: var(--gray-50); }
+
+        td { padding: .875rem 1rem; vertical-align: middle; }
+
+        td[contenteditable="true"] { background: #fffbeb; cursor: text; border-radius: 4px; }
+        td[contenteditable="true"]:focus { outline: 2px solid var(--warning); background: white; }
+
+        .fk-cell { cursor: pointer; position: relative; background: #f0f9ff; border-radius: 4px; }
+        .fk-cell:hover { background: #dbeafe; }
+
+        .dropdown {
+            width: 100%; padding: .5rem .75rem; border-radius: 6px;
+            border: 2px solid var(--primary); background: white;
+            font-size: .875rem; cursor: pointer;
+        }
+
+        .status-message {
+            position: fixed; top: 2rem; right: 2rem;
+            background: var(--success); color: white;
+            padding: 1rem 1.5rem; border-radius: 8px;
+            box-shadow: var(--shadow-xl);
+            display: none; align-items: center; gap: .75rem;
+            animation: slideIn .3s ease-out; z-index: 9999;
+        }
+
+        .status-message.show { display: flex; }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to   { transform: translateX(0);    opacity: 1; }
+        }
+
+        .empty-state { text-align: center; padding: 4rem 2rem; color: var(--gray-500); }
+        .empty-state i { font-size: 3rem; margin-bottom: 1rem; opacity: .3; }
+        .small-text { font-size: .75rem; color: var(--gray-500); font-style: italic; }
+
+        /* ═══════════════════════════════════════════════
+           ROW REMARKS MODAL
+           ═══════════════════════════════════════════════ */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.55);
+            backdrop-filter: blur(4px);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal-overlay.active { display: flex; animation: fadeIn .2s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .modal-box {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 760px;
+            max-height: 88vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px rgba(0,0,0,.25);
+            animation: slideUp .3s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            padding: 1.5rem 1.75rem 1.25rem;
+            border-bottom: 2px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .modal-header h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+        }
+
+        .modal-header h2 i { color: #ef4444; }
+
+        .modal-close-btn {
+            width: 34px; height: 34px;
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+            background: var(--gray-50);
+            cursor: pointer;
+            font-size: 1rem;
+            color: var(--gray-600);
+            display: flex; align-items: center; justify-content: center;
+            transition: all .2s;
+        }
+
+        .modal-close-btn:hover { background: var(--gray-100); color: var(--gray-900); }
+
+        .modal-body {
+            padding: 1.25rem 1.75rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-subtitle {
+            font-size: .82rem;
+            color: var(--gray-600);
+            margin-bottom: 1.25rem;
+            padding: .75rem 1rem;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+        }
+
+        /* Individual rejected row card */
+        .remark-card {
+            border: 1.5px solid var(--gray-200);
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            transition: border-color .2s;
+        }
+
+        .remark-card.has-remark { border-color: #fca5a5; }
+        .remark-card.saved-remark { border-color: #86efac; }
+
+        .remark-card-header {
+            background: var(--gray-50);
+            padding: .75rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .75rem;
+            flex-wrap: wrap;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .remark-card-header .row-label {
+            font-weight: 700;
+            font-size: .85rem;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+
+        .remark-card-header .row-label .row-id-chip {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+            border-radius: 5px;
+            padding: .1rem .45rem;
+            font-size: .75rem;
+        }
+
+        .remark-card-body {
+            padding: .875rem 1rem;
+            background: white;
+        }
+
+        .row-data-preview {
+            display: flex;
+            gap: .5rem;
+            flex-wrap: wrap;
+            margin-bottom: .75rem;
+        }
+
+        .row-data-chip {
+            background: var(--gray-100);
+            border-radius: 6px;
+            padding: .2rem .6rem;
+            font-size: .72rem;
+            color: var(--gray-700);
+        }
+
+        .row-data-chip strong { color: var(--gray-900); }
+
+        .remark-textarea {
+            width: 100%;
+            min-height: 72px;
+            padding: .75rem .875rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: .85rem;
+            color: var(--gray-800);
+            resize: vertical;
+            transition: border-color .2s;
+        }
+
+        .remark-textarea:focus {
+            outline: none;
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239,68,68,.1);
+        }
+
+        .remark-textarea[readonly] {
+            background: var(--gray-50);
+            color: var(--gray-600);
+            cursor: default;
+            border-color: var(--gray-200);
+        }
+
+        .remark-card-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: .625rem;
+        }
+
+        .btn-save-remark {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 7px;
+            padding: .45rem 1rem;
+            font-size: .8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+            transition: all .2s;
+        }
+
+        .btn-save-remark:hover { background: #dc2626; transform: translateY(-1px); }
+        .btn-save-remark:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+        .btn-save-remark.saved { background: var(--success); }
+
+        .modal-footer {
+            padding: 1rem 1.75rem;
+            border-top: 2px solid var(--gray-100);
+            display: flex;
+            justify-content: flex-end;
+            gap: .75rem;
+            flex-shrink: 0;
+        }
+
+        .btn-close-modal {
+            background: var(--gray-100);
+            color: var(--gray-700);
+            border: none;
+            border-radius: 8px;
+            padding: .65rem 1.25rem;
+            font-size: .875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .btn-close-modal:hover { background: var(--gray-200); }
+
+        .empty-remarks {
+            text-align: center;
+            padding: 2.5rem 1rem;
+            color: var(--gray-600);
+        }
+
+        .empty-remarks i { font-size: 2rem; margin-bottom: .75rem; opacity: .4; display: block; }
+
+        /* ── MODERN APPROVAL TOGGLE ── */
+        .approval-toggle {
+            display: inline-flex;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1.5px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,.08);
+            gap: 0;
+        }
+
+        .approval-toggle input[type="checkbox"] {
+            display: none;
+        }
+
+        .toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: .35rem;
+            padding: .45rem .9rem;
+            font-size: .78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .18s ease;
+            user-select: none;
+            white-space: nowrap;
+            background: #f8fafc;
+            color: #94a3b8;
+            border: none;
+            outline: none;
+        }
+
+        .toggle-btn:first-of-type {
+            border-right: 1.5px solid #e2e8f0;
+        }
+
+        .toggle-btn .toggle-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .7rem;
+            transition: all .18s;
+            background: #e2e8f0;
+            color: #94a3b8;
+        }
+
+        /* ACCEPT active */
+        .toggle-btn.accept-btn.active {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .toggle-btn.accept-btn.active .toggle-icon {
+            background: #16a34a;
+            color: white;
+        }
+        .toggle-btn.accept-btn:hover:not(.active) {
+            background: #f0fdf4;
+            color: #166534;
+        }
+
+        /* REJECT active */
+        .toggle-btn.reject-btn.active {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+        .toggle-btn.reject-btn.active .toggle-icon {
+            background: #dc2626;
+            color: white;
+        }
+        .toggle-btn.reject-btn:hover:not(.active) {
+            background: #fff1f2;
+            color: #991b1b;
+        }
+
+        /* PENDING state — neither active */
+        .approval-toggle.is-pending {
+            border-color: #fde68a;
+        }
+        .approval-toggle.is-pending .toggle-btn {
+            background: #fefce8;
+            color: #a16207;
+        }
+        .approval-toggle.is-pending .toggle-btn .toggle-icon {
+            background: #fde68a;
+            color: #a16207;
+        }
+        .approval-toggle.is-pending .toggle-btn.accept-btn:hover {
+            background: #f0fdf4; color: #166534;
+        }
+        .approval-toggle.is-pending .toggle-btn.reject-btn:hover {
+            background: #fff1f2; color: #991b1b;
+        }
+
+        /* scrollbar */
+        .table-wrapper::-webkit-scrollbar,
+        .modal-body::-webkit-scrollbar { width: 8px; height: 8px; }
+        .table-wrapper::-webkit-scrollbar-track,
+        .modal-body::-webkit-scrollbar-track { background: var(--gray-100); }
+        .table-wrapper::-webkit-scrollbar-thumb,
+        .modal-body::-webkit-scrollbar-thumb { background: var(--gray-400); border-radius: 4px; }
+
+        @media (max-width: 768px) {
+            .header { flex-direction: column; align-items: flex-start; }
+            .controls { width: 100%; flex-direction: column; }
+            .controls .btn { width: 100%; justify-content: center; }
+            .search-input { max-width: 100%; }
+            .table-wrapper { max-height: 50vh; }
+            .modal-box { max-height: 96vh; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <div class="header">
+            <div class="header-info">
+                <h1><i class="fas fa-table"></i> Excel Data Viewer</h1>
+                <div class="header-meta">
+                    <div class="meta-item">
+                        <i class="fas fa-database"></i>
+                        <span>Table: <strong id="tableNameLabel"></strong></span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="badge" id="modeBadge">
+                            <i class="fas fa-eye"></i>
+                            <span id="modeLabel">VIEW</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-back" onclick="goBack()">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+                <button class="btn btn-download" onclick="downloadExcel()">
+                    <i class="fas fa-download"></i> Download
+                </button>
+                <!-- Show "View Rejection Remarks" to users when viewing rejected upload -->
+                <button class="btn btn-remark" id="btnViewRemarks" style="display:none;" onclick="openRemarksModal(false)">
+                    <i class="fas fa-comment-alt"></i> View Row Remarks
+                </button>
+                <!-- Approver: manage remarks on rejected rows -->
+                <button class="btn btn-remark" id="btnManageRemarks" style="display:none;" onclick="openRemarksModal(true)">
+                    <i class="fas fa-comment-dots"></i> Manage Row Remarks
+                </button>
+                <button class="btn btn-save" id="btnReapprove" style="display:none;" onclick="requestReApproval()">
+                    <i class="fas fa-paper-plane"></i> Request Re-Approval
+                </button>
+                <button class="btn btn-add" id="btnAddRow" style="display:none;" onclick="addNewRow()">
+                    <i class="fas fa-plus"></i> Add Row
+                </button>
+            </div>
+        </div>
+
+        <div class="search-section">
+            <input id="searchInput" type="text" class="search-input"
+                   placeholder="Search table data..." oninput="filterTable()">
+        </div>
+
+        <div class="table-wrapper">
+            <table id="excelTable">
+                <tbody>
+                    <tr>
+                        <td colspan="100" class="empty-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Loading data...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ROW REMARKS MODAL
+     ═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="remarksModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2><i class="fas fa-comment-alt"></i> <span id="remarksModalTitle">Row Rejection Remarks</span></h2>
+            <button class="modal-close-btn" onclick="closeRemarksModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-subtitle" id="remarksSubtitle">
+                Showing all rejected rows for this upload. Remarks explain why each row was rejected.
+            </div>
+            <div id="remarksContent">
+                <div class="empty-remarks">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    Loading rejected rows...
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-close-modal" onclick="closeRemarksModal()">
+                <i class="fas fa-times"></i> Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="status-message" id="statusMessage">
+    <i class="fas fa-check-circle"></i>
+    <span id="statusText">Saved</span>
+</div>
+
+<script>
+    /* ═══════════════════════════════════════════════
+       GLOBALS
+       ═══════════════════════════════════════════════ */
+    const tableName  = "{{ table }}";
+    const pageMode   = "{{ mode }}";
+    const reportName = "{{ report_name }}";
+    const isEditable = (pageMode === "edit");
+
+    const HIDE_ALWAYS = [
+        "created_by","created_date","updated_by","updated_date",
+        "status_","upload_id","rejection_remark"   // hide remark col from main table
+    ];
+
+    const urlParams    = new URLSearchParams(window.location.search);
+    const uploadId     = urlParams.get("upload_id");
+    const approvalMode = urlParams.get("approval_mode") === "true";
+    const onlyRejected = urlParams.get("only_rejected") === "true";
+
+    const canApproveReject = approvalMode;
+
+    // row remarks cache: { rowId: remarkText }
+    let rowRemarks = {};
+    // full rows data cache for preview in modal
+    let allRowsData = [];
+    // upload-level rejection reason (fetched from server)
+    let uploadRejectionReason = "";
+
+    document.getElementById("tableNameLabel").innerText = reportName;
+    document.getElementById("modeLabel").innerText = pageMode.toUpperCase();
+
+    const modeBadge = document.getElementById("modeBadge");
+    if (isEditable) {
+        modeBadge.className = "badge badge-edit";
+        modeBadge.innerHTML = '<i class="fas fa-edit"></i> <span>EDIT MODE</span>';
+        document.getElementById("btnAddRow").style.display = "inline-flex";
+    } else {
+        modeBadge.className = "badge badge-view";
+        modeBadge.innerHTML = '<i class="fas fa-eye"></i> <span>VIEW MODE</span>';
+        document.getElementById("btnAddRow").style.display = "none";
+    }
+
+    // Show Re-Approval button for rejected edit
+    if (onlyRejected && isEditable) {
+        document.getElementById("btnReapprove").style.display = "inline-flex";
+    }
+
+    // Show appropriate remarks button
+    if (canApproveReject && uploadId) {
+        // Approver: manage remarks (only when upload_id known)
+        document.getElementById("btnManageRemarks").style.display = "inline-flex";
+    }
+    // User: always show View Remarks button in view mode (visibility refined after load)
+    if (!canApproveReject && pageMode === "view") {
+        document.getElementById("btnViewRemarks").style.display = "inline-flex";
+    }
+
+    let metadataLabels = {};
+    let tableHeaders   = [];
+    let lookupCache    = {};
+    let pkColumn       = "id";
+
+    document.addEventListener("DOMContentLoaded", loadTable);
+
+    /* ═══════════════════════════════════════════════
+       LOAD TABLE
+       ═══════════════════════════════════════════════ */
+    async function loadTable() {
+        if (!tableName) { alert("Missing table parameter"); return; }
+
+        try {
+            const pkRes = await fetch(`/api/primary_key?table=${encodeURIComponent(tableName)}`);
+            const pkData = await pkRes.json();
+            pkColumn = pkData.pk || "id";
+
+            const mRes = await fetch(`/api/column_metadata?table=${encodeURIComponent(tableName)}`);
+            metadataLabels = await mRes.json() || {};
+
+            const colRes = await fetch(`/api/table_columns?table=${encodeURIComponent(tableName)}`);
+            tableHeaders = await colRes.json();
+
+            const fkCols = tableHeaders.filter(c => c.endsWith("_id"));
+            for (const col of fkCols) {
+                const lk = await fetch(`/api/lookup?col=${encodeURIComponent(col)}`);
+                lookupCache[col] = await lk.json();
+            }
+
+            let apiUrl = `/api/excel_data?table=${encodeURIComponent(tableName)}`;
+            if (uploadId)     apiUrl += `&upload_id=${encodeURIComponent(uploadId)}`;
+            if (onlyRejected) apiUrl += `&only_rejected=true`;
+
+            const rowsRes = await fetch(apiUrl);
+            const rows    = await rowsRes.json();
+
+            allRowsData = rows;
+
+            // Load upload-level rejection reason
+            if (uploadId) {
+                await loadUploadRejectionReason();
+                await loadRowRemarks();
+            }
+
+            renderTable(rows);
+
+        } catch (e) {
+            console.error("Failed to load table:", e);
+            document.getElementById("excelTable").innerHTML = `
+                <tbody><tr><td colspan="100" class="empty-state">
+                    <i class="fas fa-exclamation-triangle"></i><p>Failed to load data</p>
+                </td></tr></tbody>`;
+        }
+    }
+
+    /* ═══════════════════════════════════════════════
+       LOAD ROW REMARKS FROM BACKEND
+       ═══════════════════════════════════════════════ */
+    async function loadRowRemarks() {
+        try {
+            const res  = await fetch(`/api/row_remarks?table=${encodeURIComponent(tableName)}&upload_id=${encodeURIComponent(uploadId)}`);
+            const data = await res.json();
+            if (data.rows) {
+                rowRemarks = {};
+                data.rows.forEach(r => {
+                    rowRemarks[String(r.id)] = r.remark || "";
+                });
+            }
+        } catch (e) {
+            console.warn("Could not load row remarks:", e);
+        }
+    }
+
+    /* ═══════════════════════════════════════════════
+       LOAD UPLOAD-LEVEL REJECTION REASON
+       ═══════════════════════════════════════════════ */
+    async function loadUploadRejectionReason() {
+        if (!uploadId) return;
+        try {
+            const res  = await fetch(`/uploads?upload_id=${encodeURIComponent(uploadId)}`);
+            // Try the approver route which returns rejection_reason
+            const res2 = await fetch(`/api/upload_rejection_reason?upload_id=${encodeURIComponent(uploadId)}`);
+            if (res2.ok) {
+                const data = await res2.json();
+                uploadRejectionReason = data.rejection_reason || "";
+            }
+        } catch (e) {
+            // silently ignore — non-critical
+        }
+    }
+
+    /* ═══════════════════════════════════════════════
+       HELPERS
+       ═══════════════════════════════════════════════ */
+    function pretty(col) {
+        return metadataLabels[col] || col.replace(/_/g," ").replace(/\b\w/g, s => s.toUpperCase());
+    }
+
+    function fkText(col, id) {
+        const list  = lookupCache[col] || [];
+        const found = list.find(x => String(x.id) === String(id));
+        return found ? found.name : "";
+    }
+
+    function isNonEditable(col) {
+        return col === pkColumn ||
+            ["created_by","created_date","updated_by","updated_date",
+             "status_","upload_id","rejection_remark"].includes(col);
+    }
+
+    function isApprovalColumn(col) { return col === "is_approved"; }
+
+    function approvalStatus(val) {
+        if (val === null || val === undefined || val === "") return null;
+        const s = String(val).toLowerCase();
+        if (s === "1" || s === "true")  return 1;
+        if (s === "0" || s === "false") return 0;
+        return null;
+    }
+
+    /* ═══════════════════════════════════════════════
+       BULK SELECT
+       ═══════════════════════════════════════════════ */
+    async function bulkApprove(status) {
+        if (!canApproveReject) return;
+        const rows = document.querySelectorAll("#excelTable tbody tr");
+        for (const tr of rows) {
+            const pk = tr.dataset.pk;
+            if (!pk) continue;
+            await updateApproval(pk, status);
+            const acceptCb = tr.querySelector(".approve-accept");
+            const rejectCb = tr.querySelector(".approve-reject");
+            if (acceptCb && rejectCb) {
+                if (status === 1)    { acceptCb.checked = true;  rejectCb.checked = false; }
+                else if (status === 0) { acceptCb.checked = false; rejectCb.checked = true;  }
+                else                 { acceptCb.checked = false; rejectCb.checked = false; }
+            }
+            // update row style
+            updateRowStyle(tr, status);
+        }
+        flash("Updated all rows");
+        // Refresh all toggle visuals after bulk action
+        document.querySelectorAll("[id^='toggle-wrap-']").forEach(wrap => {
+            const pk = wrap.id.replace("toggle-wrap-","");
+            const acceptBtn = wrap.querySelector(".accept-btn");
+            const rejectBtn = wrap.querySelector(".reject-btn");
+            if (!acceptBtn || !rejectBtn) return;
+            acceptBtn.classList.toggle("active", status === 1);
+            rejectBtn.classList.toggle("active", status === 0);
+            wrap.classList.toggle("is-pending", status === null);
+        });
+    }
+
+    function updateRowStyle(tr, status) {
+        if (status === 0) {
+            tr.classList.add("row-rejected");
+        } else {
+            tr.classList.remove("row-rejected");
+        }
+    }
+
+    /* ═══════════════════════════════════════════════
+       RENDER TABLE
+       ═══════════════════════════════════════════════ */
+    function renderTable(rows) {
+        document.querySelectorAll(".bulk-controls").forEach(x => x.remove());
+
+        // Visible headers (exclude HIDE_ALWAYS)
+        const visibleHeaders = tableHeaders.filter(h => !HIDE_ALWAYS.includes(h));
+
+        let html = "<thead><tr>";
+        visibleHeaders.forEach(h => { html += `<th>${pretty(h)}</th>`; });
+        if (isEditable) html += "<th style='width:220px;'>Actions</th>";
+        html += "</tr></thead><tbody id='tableBody'>";
+
+        if (!rows.length) {
+            html += `<tr><td colspan="${visibleHeaders.length + 1}" class="empty-state">
+                <i class="fas fa-inbox"></i><p>No records found</p></td></tr>`;
+            document.getElementById("excelTable").innerHTML = html;
+            return;
+        }
+
+        // Bulk controls for approver
+        if (isEditable && canApproveReject && tableHeaders.includes("is_approved")) {
+            const bulkHtml = `
+                <div class="bulk-controls" style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0;">
+                    <button class="btn btn-save"   onclick="bulkApprove(1)">✅ Select All Accept</button>
+                    <button class="btn btn-delete" onclick="bulkApprove(0)">❌ Select All Reject</button>
+                    <button class="btn btn-add"    onclick="bulkApprove(null)">⏳ Clear All (Pending)</button>
+                </div>`;
+            document.querySelector(".search-section").insertAdjacentHTML("afterend", bulkHtml);
+        }
+
+        rows.forEach(r => {
+            const pkVal    = r[pkColumn];
+            const apStatus = approvalStatus(r["is_approved"]);
+            const isRowRejected = (apStatus === 0);
+            const remarkText = rowRemarks[String(pkVal)] || "";
+
+            html += `<tr data-pk="${pkVal}" class="${isRowRejected ? 'row-rejected' : ''}">`;
+
+            visibleHeaders.forEach(col => {
+                const val = r[col] ?? "";
+
+                if (!isEditable || isNonEditable(col)) {
+                    // VIEW MODE
+                    if (isApprovalColumn(col)) {
+                        const st = approvalStatus(val);
+                        const badge = st === 1
+                            ? `<span style="display:inline-flex;align-items:center;gap:.35rem;background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:6px;padding:.25rem .7rem;font-size:.78rem;font-weight:600;"><i class="fas fa-check-circle"></i>Approved</span>`
+                            : st === 0
+                            ? `<span style="display:inline-flex;align-items:center;gap:.35rem;background:#fef2f2;color:#991b1b;border:1px solid #fca5a5;border-radius:6px;padding:.25rem .7rem;font-size:.78rem;font-weight:600;"><i class="fas fa-times-circle"></i>Rejected</span>`
+                            : `<span style="display:inline-flex;align-items:center;gap:.35rem;background:#fef9c3;color:#854d0e;border:1px solid #fde047;border-radius:6px;padding:.25rem .7rem;font-size:.78rem;font-weight:600;"><i class="fas fa-clock"></i>Pending</span>`;
+                        html += `<td style="text-align:center;">${badge}</td>`;
+                    } else {
+                        const displayVal = col.endsWith("_id") ? fkText(col, val) : val;
+                        html += `<td>${displayVal || '<span class="small-text">(empty)</span>'}</td>`;
+                    }
+                } else {
+                    // EDIT MODE
+                    if (col.endsWith("_id")) {
+                        html += `<td class="fk-cell" data-col="${col}" data-pk="${pkVal}" onclick="openFkDropdown(event,this)">
+                            ${fkText(col, val) || '<span class="small-text">Click to select</span>'}
+                        </td>`;
+                    } else if (isApprovalColumn(col)) {
+                        if (!canApproveReject) {
+                            const st = approvalStatus(val);
+                            html += `<td style="font-weight:600;text-align:center;">
+                                ${st === 1 ? "✅ Accepted" : st === 0 ? "❌ Rejected" : "⏳ Pending"}
+                            </td>`;
+                        } else {
+                            const st = approvalStatus(val);
+                            const isPending  = (st === null);
+                            const isAccepted = (st === 1);
+                            const isRejected = (st === 0);
+                            const wrapClass  = isPending ? "approval-toggle is-pending" : "approval-toggle";
+                            html += `<td style="text-align:center;padding:.6rem 1rem;">
+                                <div class="${wrapClass}" id="toggle-wrap-${pkVal}">
+                                    <!-- hidden real checkboxes (keep logic unchanged) -->
+                                    <input type="checkbox" class="approve-accept" id="cb-accept-${pkVal}"
+                                        ${isAccepted ? "checked" : ""}
+                                        onchange="onAcceptRejectChange('${pkVal}',1,this)">
+                                    <input type="checkbox" class="approve-reject" id="cb-reject-${pkVal}"
+                                        ${isRejected ? "checked" : ""}
+                                        onchange="onAcceptRejectChange('${pkVal}',0,this)">
+
+                                    <!-- Accept button -->
+                                    <label class="toggle-btn accept-btn ${isAccepted ? 'active' : ''}"
+                                           for="cb-accept-${pkVal}"
+                                           onclick="handleToggleClick(event,'${pkVal}','accept')">
+                                        <span class="toggle-icon"><i class="fas fa-check"></i></span>
+                                        Accept
+                                    </label>
+
+                                    <!-- Reject button -->
+                                    <label class="toggle-btn reject-btn ${isRejected ? 'active' : ''}"
+                                           for="cb-reject-${pkVal}"
+                                           onclick="handleToggleClick(event,'${pkVal}','reject')">
+                                        <span class="toggle-icon"><i class="fas fa-times"></i></span>
+                                        Reject
+                                    </label>
+                                </div>
+                            </td>`;
+                        }
+                    } else {
+                        html += `<td contenteditable="true"
+                            onfocus="this.dataset.old=this.innerText"
+                            onblur="saveCell('${pkVal}','${col}',this)">${val}</td>`;
+                    }
+                }
+            });
+
+            // ACTION COLUMN
+            if (isEditable) {
+                // Show remark chip if row is rejected and has a remark
+                const remarkChip = (isRowRejected && remarkText)
+                    ? `<span class="row-remark-badge" title="${escapeHtml(remarkText)}">
+                           <i class="fas fa-comment-alt"></i>
+                           Has Remark
+                       </span>`
+                    : "";
+
+                // Approver: show "Add/Edit Remark" button for rejected rows
+                const remarkBtn = (canApproveReject && isRowRejected)
+                    ? `<button class="btn btn-remark" style="padding:.4rem .75rem;font-size:.72rem;"
+                           onclick="openSingleRowRemark('${pkVal}')">
+                           <i class="fas fa-comment"></i> ${remarkText ? 'Edit' : 'Add'} Remark
+                       </button>`
+                    : "";
+
+                html += `<td style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                    <button class="btn btn-save" onclick="saveRow('${pkVal}',this)">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                    <button class="btn btn-delete" onclick="deleteRow('${pkVal}')">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                    ${remarkBtn}
+                    ${remarkChip}
+                </td>`;
+            } else {
+                // View mode: show remark chip if row rejected and has remark
+                if (isRowRejected && remarkText) {
+                    // We need a view-remark button inline
+                    // We'll add it to the last td by appending after the loop
+                    // Instead let's just add it to the Actions-equivalent cell
+                    html += `<td>
+                        <span class="row-remark-badge" style="cursor:pointer;"
+                              onclick="openSingleRowRemarkView('${pkVal}','${escapeAttr(remarkText)}')"
+                              title="Click to view rejection remark">
+                            <i class="fas fa-comment-alt"></i> View Remark
+                        </span>
+                    </td>`;
+                    // We need a column header for this — handled below
+                }
+            }
+
+            html += "</tr>";
+        });
+
+        html += "</tbody>";
+
+        // Add "Remark" column header if in view mode and any rejected rows have remarks
+        if (!isEditable) {
+            const hasAnyRemark = rows.some(r => {
+                const st = approvalStatus(r["is_approved"]);
+                return st === 0 && rowRemarks[String(r[pkColumn])];
+            });
+            if (hasAnyRemark) {
+                // Inject extra th
+                html = html.replace(
+                    "</tr></thead>",
+                    '<th style="min-width:120px;">Remark</th></tr></thead>'
+                );
+            }
+        }
+
+        document.getElementById("excelTable").innerHTML = html;
+    }
+
+    /* ═══════════════════════════════════════════════
+       OPEN SINGLE ROW REMARK (approver: edit)
+       ═══════════════════════════════════════════════ */
+    function openSingleRowRemark(rowId) {
+        openRemarksModal(true, String(rowId));
+    }
+
+    /* ═══════════════════════════════════════════════
+       OPEN SINGLE ROW REMARK (user: view only)
+       ═══════════════════════════════════════════════ */
+    function openSingleRowRemarkView(rowId, remark) {
+        // Simple inline view — open the full modal in read-only mode
+        openRemarksModal(false);
+        // Scroll to that card after modal renders
+        setTimeout(() => {
+            const el = document.getElementById(`remark-card-${rowId}`);
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 300);
+    }
+
+    /* ═══════════════════════════════════════════════
+       OPEN REMARKS MODAL
+       isEditorMode = true  → approver editing remarks
+       isEditorMode = false → user viewing remarks
+       focusRowId   = optional string, scroll to that card
+       ═══════════════════════════════════════════════ */
+    async function openRemarksModal(isEditorMode, focusRowId = null) {
+        document.getElementById("remarksModal").classList.add("active");
+        document.getElementById("remarksModalTitle").innerText =
+            isEditorMode ? "Manage Row Rejection Remarks" : "Row Rejection Remarks";
+        document.getElementById("remarksSubtitle").innerText = isEditorMode
+            ? "Add or edit remarks for each rejected row. Users will see these explanations."
+            : "These remarks explain why specific rows in your upload were rejected by the approver.";
+
+        // Show loading
+        document.getElementById("remarksContent").innerHTML = `
+            <div class="empty-remarks">
+                <i class="fas fa-spinner fa-spin"></i>
+                Loading rejected rows...
+            </div>`;
+
+        // Refresh remarks from server
+        await loadRowRemarks();
+
+        // Get rejected rows
+        const rejectedRows = allRowsData.filter(r => {
+            const st = approvalStatus(r["is_approved"]);
+            return st === 0;
+        });
+
+        if (!rejectedRows.length) {
+            document.getElementById("remarksContent").innerHTML = `
+                <div class="empty-remarks">
+                    <i class="fas fa-check-circle" style="color:var(--success);opacity:1;"></i>
+                    No rejected rows found for this upload.
+                </div>`;
+            return;
+        }
+
+        // Show upload-level rejection reason banner if available
+        let uploadReasonBanner = "";
+        if (uploadRejectionReason) {
+            uploadReasonBanner = `
+                <div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.25rem;">
+                    <div style="font-size:.78rem;font-weight:700;color:#991b1b;margin-bottom:.4rem;display:flex;align-items:center;gap:.4rem;">
+                        <i class="fas fa-ban"></i> Upload-Level Rejection Reason
+                    </div>
+                    <div style="font-size:.875rem;color:#7f1d1d;">${escapeHtml(uploadRejectionReason)}</div>
+                </div>`;
+        }
+
+        // Build remark cards
+        const visibleCols = tableHeaders.filter(h =>
+            !HIDE_ALWAYS.includes(h) &&
+            !["is_approved","id"].includes(h) &&
+            !isApprovalColumn(h)
+        ).slice(0, 5); // show first 5 data columns as preview
+
+        let html = uploadReasonBanner;
+
+        rejectedRows.forEach(row => {
+            const rowId      = String(row[pkColumn]);
+            const remarkText = rowRemarks[rowId] || "";
+            const hasRemark  = !!remarkText;
+
+            // Data preview chips
+            let previewHtml = "";
+            visibleCols.forEach(col => {
+                const val = row[col];
+                if (val === null || val === undefined || val === "") return;
+                const display = col.endsWith("_id") ? fkText(col, val) : val;
+                previewHtml += `<span class="row-data-chip"><strong>${pretty(col)}:</strong> ${escapeHtml(String(display))}</span>`;
+            });
+
+            html += `
+            <div class="remark-card ${hasRemark ? 'has-remark' : ''}" id="remark-card-${rowId}">
+                <div class="remark-card-header">
+                    <div class="row-label">
+                        <i class="fas fa-times-circle" style="color:#ef4444;"></i>
+                        Rejected Row
+                        <span class="row-id-chip">ID #${rowId}</span>
+                    </div>
+                    ${hasRemark
+                        ? '<span style="font-size:.72rem;color:#991b1b;font-weight:600;"><i class="fas fa-comment-alt"></i> Has Remark</span>'
+                        : '<span style="font-size:.72rem;color:#9ca3af;">No remark yet</span>'
+                    }
+                </div>
+                <div class="remark-card-body">
+                    ${previewHtml ? `<div class="row-data-preview">${previewHtml}</div>` : ""}
+                    ${(!isEditorMode && !remarkText)
+                        ? `<div style="background:#f8fafc;border:1.5px dashed #cbd5e1;border-radius:8px;padding:.875rem 1rem;color:#94a3b8;font-size:.82rem;font-style:italic;">
+                               <i class="fas fa-comment-slash"></i> No row-specific remark added by the approver for this row.
+                           </div>`
+                        : `<textarea
+                               id="remark-textarea-${rowId}"
+                               class="remark-textarea"
+                               placeholder="Enter rejection reason for this row..."
+                               ${isEditorMode ? "" : "readonly"}
+                           >${escapeHtml(remarkText)}</textarea>`
+                    }
+                    ${isEditorMode ? `
+                    <div class="remark-card-actions">
+                        <button class="btn-save-remark" id="remark-save-btn-${rowId}"
+                                onclick="saveRowRemark('${rowId}', this)">
+                            <i class="fas fa-save"></i>
+                            ${hasRemark ? "Update Remark" : "Save Remark"}
+                        </button>
+                    </div>` : ""}
+                </div>
+            </div>`;
+        });
+
+        document.getElementById("remarksContent").innerHTML = html;
+
+        // Scroll to focused row if specified
+        if (focusRowId) {
+            setTimeout(() => {
+                const el = document.getElementById(`remark-card-${focusRowId}`);
+                if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    // Highlight briefly
+                    el.style.boxShadow = "0 0 0 3px #ef4444";
+                    setTimeout(() => { el.style.boxShadow = ""; }, 1500);
+                    // Focus textarea
+                    const ta = document.getElementById(`remark-textarea-${focusRowId}`);
+                    if (ta && isEditorMode) { ta.focus(); ta.select(); }
+                }
+            }, 200);
+        }
+    }
+
+    /* ═══════════════════════════════════════════════
+       SAVE SINGLE ROW REMARK
+       ═══════════════════════════════════════════════ */
+    async function saveRowRemark(rowId, btn) {
+        const ta = document.getElementById(`remark-textarea-${rowId}`);
+        if (!ta) return;
+
+        const remark = ta.value.trim();
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+        try {
+            const res = await fetch("/api/save_row_remark", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ table: tableName, row_id: parseInt(rowId), remark })
+            });
+
+            const out = await res.json();
+
+            if (!res.ok) {
+                alert(out.error || "Failed to save remark");
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Save Remark';
+                return;
+            }
+
+            // Update local cache
+            rowRemarks[rowId] = remark;
+
+            // Update card appearance
+            btn.classList.add("saved");
+            btn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+            const card = document.getElementById(`remark-card-${rowId}`);
+            if (card) {
+                card.classList.remove("has-remark");
+                if (remark) card.classList.add("saved-remark");
+            }
+
+            setTimeout(() => {
+                btn.classList.remove("saved");
+                btn.innerHTML = '<i class="fas fa-save"></i> Update Remark';
+                btn.disabled  = false;
+            }, 2000);
+
+            // Refresh the main table to update remark chips
+            renderTable(allRowsData);
+
+        } catch (e) {
+            alert("Failed to save remark");
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> Save Remark';
+        }
+    }
+
+    /* ═══════════════════════════════════════════════
+       CLOSE REMARKS MODAL
+       ═══════════════════════════════════════════════ */
+    function closeRemarksModal() {
+        document.getElementById("remarksModal").classList.remove("active");
+    }
+
+    document.getElementById("remarksModal").addEventListener("click", function(e) {
+        if (e.target === this) closeRemarksModal();
+    });
+
+    /* ═══════════════════════════════════════════════
+       TOGGLE VISUAL UPDATE (UI only — no logic change)
+       ═══════════════════════════════════════════════ */
+    function handleToggleClick(event, pk, action) {
+        // Update visual active states immediately for snappy feel
+        const wrap       = document.getElementById(`toggle-wrap-${pk}`);
+        const acceptBtn  = wrap ? wrap.querySelector(".accept-btn") : null;
+        const rejectBtn  = wrap ? wrap.querySelector(".reject-btn") : null;
+        const acceptCb   = document.getElementById(`cb-accept-${pk}`);
+        const rejectCb   = document.getElementById(`cb-reject-${pk}`);
+        if (!wrap || !acceptBtn || !rejectBtn) return;
+
+        if (action === "accept") {
+            const willBeChecked = !acceptCb.checked; // checkbox hasn't toggled yet (label click fires first)
+            if (willBeChecked) {
+                acceptBtn.classList.add("active");
+                rejectBtn.classList.remove("active");
+                wrap.classList.remove("is-pending");
+            } else {
+                acceptBtn.classList.remove("active");
+                wrap.classList.add("is-pending");
+            }
+        } else {
+            const willBeChecked = !rejectCb.checked;
+            if (willBeChecked) {
+                rejectBtn.classList.add("active");
+                acceptBtn.classList.remove("active");
+                wrap.classList.remove("is-pending");
+            } else {
+                rejectBtn.classList.remove("active");
+                wrap.classList.add("is-pending");
+            }
+        }
+        // Let the real checkbox onchange fire normally
+    }
+
+    /* ═══════════════════════════════════════════════
+       APPROVAL CHECKBOX
+       ═══════════════════════════════════════════════ */
+    async function onAcceptRejectChange(pk, changedValue, checkbox) {
+        if (!canApproveReject) return;
+
+        const tr       = checkbox.closest("tr");
+        const acceptCb = tr.querySelector(".approve-accept");
+        const rejectCb = tr.querySelector(".approve-reject");
+        let newValue   = null;
+
+        if (changedValue === 1) {
+            if (checkbox.checked) { rejectCb.checked = false; newValue = 1; }
+            else                    { newValue = null; }
+        }
+        if (changedValue === 0) {
+            if (checkbox.checked) { acceptCb.checked = false; newValue = 0; }
+            else                    { newValue = null; }
+        }
+
+        const ok = await updateApproval(pk, newValue);
+        if (ok) {
+            flash(newValue === 0 ? "Row rejected" : newValue === 1 ? "Row accepted" : "Cleared");
+
+            // Update row style immediately
+            updateRowStyle(tr, newValue);
+
+            // Update allRowsData cache
+            const rowData = allRowsData.find(r => String(r[pkColumn]) === String(pk));
+            if (rowData) rowData["is_approved"] = newValue;
+
+            // If row just got rejected, show "Add Remark" button in actions cell
+            if (newValue === 0) {
+                refreshActionCellForRow(tr, pk);
+            } else if (newValue === 1 || newValue === null) {
+                // Row un-rejected — clear remark button
+                refreshActionCellForRow(tr, pk);
+            }
+        }
+    }
+
+    function refreshActionCellForRow(tr, pk) {
+        // Re-render just the action cell for this row
+        const rowData = allRowsData.find(r => String(r[pkColumn]) === String(pk));
+        if (!rowData) return;
+
+        const apStatus  = approvalStatus(rowData["is_approved"]);
+        const isRejected = (apStatus === 0);
+        const remarkText = rowRemarks[String(pk)] || "";
+
+        const actionTd = tr.querySelector("td:last-child");
+        if (!actionTd) return;
+
+        const remarkChip = (isRejected && remarkText)
+            ? `<span class="row-remark-badge" title="${escapeHtml(remarkText)}">
+                   <i class="fas fa-comment-alt"></i> Has Remark
+               </span>`
+            : "";
+
+        const remarkBtn = (canApproveReject && isRejected)
+            ? `<button class="btn btn-remark" style="padding:.4rem .75rem;font-size:.72rem;"
+                   onclick="openSingleRowRemark('${pk}')">
+                   <i class="fas fa-comment"></i> ${remarkText ? 'Edit' : 'Add'} Remark
+               </button>`
+            : "";
+
+        actionTd.innerHTML = `
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                <button class="btn btn-save" onclick="saveRow('${pk}',this)">
+                    <i class="fas fa-save"></i> Save
+                </button>
+                <button class="btn btn-delete" onclick="deleteRow('${pk}')">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+                ${remarkBtn}
+                ${remarkChip}
+            </div>`;
+    }
+
+    async function updateApproval(pk, value) {
+        const res = await fetch("/api/set_row_status", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ table: tableName, id: pk, status: value, upload_id: uploadId })
+        });
+        const out = await res.json();
+        if (!res.ok) { alert(out.error || "Failed to update approval"); return false; }
+        return true;
+    }
+
+    /* ═══════════════════════════════════════════════
+       FK DROPDOWN
+       ═══════════════════════════════════════════════ */
+    function openFkDropdown(event, td) {
+        event.stopPropagation();
+        const col  = td.dataset.col;
+        const pk   = td.dataset.pk;
+        const list = lookupCache[col] || [];
+
+        td.innerHTML = "";
+        const select = document.createElement("select");
+        select.className = "dropdown";
+        select.addEventListener("click", e => e.stopPropagation());
+        select.add(new Option("-- Select --", ""));
+        list.forEach(o => select.add(new Option(o.name, o.id)));
+
+        select.onchange = async () => {
+            const newVal = select.value;
+            await updateFk(pk, col, newVal);
+            td.innerText = select.options[select.selectedIndex].text;
+            flash("Saved successfully");
+        };
+
+        td.appendChild(select);
+        select.focus();
+    }
+
+    async function updateFk(pk, col, value) {
+        await fetch("/api/update_excel_cell", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ table: tableName, id: pk, column: col, value })
+        });
+    }
+
+    /* ═══════════════════════════════════════════════
+       CELL / ROW SAVE
+       ═══════════════════════════════════════════════ */
+    async function saveCell(pk, col, el) {
+        const newVal = el.innerText.trim();
+        const oldVal = el.dataset.old;
+        if (newVal === oldVal) return;
+
+        const res = await fetch("/api/update_excel_cell", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ table: tableName, id: pk, column: col, value: newVal })
+        });
+
+        const out = await res.json();
+        if (!res.ok) { alert(out.error || "Failed to save"); el.innerText = oldVal; }
+        else flash("Saved successfully");
+    }
+
+    async function saveRow(pk, btn) {
+        const tr  = btn.closest("tr");
+        const tds = tr.querySelectorAll("td");
+        const visibleHeaders = tableHeaders.filter(h => !HIDE_ALWAYS.includes(h));
+
+        for (let i = 0; i < visibleHeaders.length; i++) {
+            const col = visibleHeaders[i];
+            const td  = tds[i];
+            if (isNonEditable(col) || isApprovalColumn(col) || col.endsWith("_id")) continue;
+            const value = td.innerText.trim();
+            await fetch("/api/update_excel_cell", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ table: tableName, id: pk, column: col, value })
+            });
+        }
+        flash("Row saved successfully");
+    }
+
+    /* ═══════════════════════════════════════════════
+       ADD ROW
+       ═══════════════════════════════════════════════ */
+    function addNewRow() {
+        const tbody = document.getElementById("tableBody");
+        const tr    = document.createElement("tr");
+        tr.style.background = "#f0fdf4";
+
+        const visibleHeaders = tableHeaders.filter(h => !HIDE_ALWAYS.includes(h));
+
+        visibleHeaders.forEach(col => {
+            const td = document.createElement("td");
+            if (isNonEditable(col)) {
+                td.innerHTML = "<span class='small-text'>(auto)</span>";
+            } else if (col.endsWith("_id")) {
+                const sel = document.createElement("select");
+                sel.className = "dropdown";
+                sel.add(new Option("-- Select --", ""));
+                (lookupCache[col] || []).forEach(o => sel.add(new Option(o.name, o.id)));
+                td.appendChild(sel);
+            } else {
+                td.contentEditable = true;
+                td.style.background = "#fffbeb";
+            }
+            tr.appendChild(td);
+        });
+
+        const actionTd  = document.createElement("td");
+        const saveBtn   = document.createElement("button");
+        saveBtn.className = "btn btn-save";
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> Save';
+        saveBtn.onclick   = () => saveNewRow(tr);
+        actionTd.appendChild(saveBtn);
+        tr.appendChild(actionTd);
+
+        tbody.appendChild(tr);
+        tr.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    async function saveNewRow(tr) {
+        const cells          = tr.querySelectorAll("td");
+        const visibleHeaders = tableHeaders.filter(h => !HIDE_ALWAYS.includes(h));
+        const rowData        = {};
+
+        visibleHeaders.forEach((col, idx) => {
+            const cell = cells[idx];
+            if (isNonEditable(col) || isApprovalColumn(col)) return;
+            if (col.endsWith("_id")) {
+                const sel = cell.querySelector("select");
+                if (sel && sel.value) rowData[col] = parseInt(sel.value);
+            } else {
+                const value = cell.innerText.trim();
+                if (value) rowData[col] = value;
+            }
+        });
+
+        const res = await fetch("/api/add_excel_row", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ table: tableName, row_data: rowData, upload_id: uploadId })
+        });
+
+        const out = await res.json();
+        if (!res.ok) { alert(out.error || "Failed to add row"); }
+        else { flash("Row added (auto-approved)"); setTimeout(loadTable, 500); }
+    }
+
+    /* ═══════════════════════════════════════════════
+       DELETE ROW
+       ═══════════════════════════════════════════════ */
+    async function deleteRow(pk) {
+        if (!canApproveReject) return;
+        if (!confirm("Are you sure you want to delete this row?")) return;
+
+        await fetch("/api/delete_excel_row", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ table: tableName, id: pk })
+        });
+
+        flash("Row deleted");
+        setTimeout(loadTable, 500);
+    }
+
+    /* ═══════════════════════════════════════════════
+       UTILITIES
+       ═══════════════════════════════════════════════ */
+    function flash(msg) {
+        const el = document.getElementById("statusMessage");
+        document.getElementById("statusText").innerText = msg;
+        el.classList.add("show");
+        setTimeout(() => el.classList.remove("show"), 2000);
+    }
+
+    function filterTable() {
+        const q = document.getElementById("searchInput").value.toLowerCase();
+        document.querySelectorAll("#excelTable tbody tr").forEach(tr => {
+            tr.style.display = tr.innerText.toLowerCase().includes(q) ? "" : "none";
+        });
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text ?? "";
+        return div.innerHTML;
+    }
+
+    function escapeAttr(text) {
+        return String(text ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/'/g, "&#39;")
+            .replace(/"/g, "&quot;")
+            .replace(/\n/g, " ");
+    }
+
+    function goBack() {
+        if (document.referrer && document.referrer.includes(window.location.host)) {
+            window.history.back(); return;
+        }
+        fetch("/api/current_user", { credentials: "include" })
+            .then(r => r.json())
+            .then(u => {
+                if (u.role === "admin")        window.location.href = "/admin_dashboard";
+                else if (u.role === "approver") window.location.href = "/approver_dashboard";
+                else                            window.location.href = "/user_dashboard";
+            })
+            .catch(() => { window.location.href = "/user_dashboard"; });
+    }
+
+    function downloadExcel() {
+        const hideCols = ["created_by","created_date","updated_by","updated_date",
+                          "status_","upload_id","is_approved","rejection_remark"];
+        const params = new URLSearchParams();
+        params.append("table", tableName);
+        params.append("filename", `${tableName}.xlsx`);
+        params.append("hide_cols", hideCols.join(","));
+        window.location.href = `/download_excel?${params.toString()}`;
+    }
+
+    async function requestReApproval() {
+        if (!uploadId) { alert("upload_id missing"); return; }
+        if (!confirm("Request Re-Approval? This will send corrected rejected records to approver again.")) return;
+
+        const res = await fetch("/api/request_reapproval", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ upload_id: uploadId, table: tableName })
+        });
+
+        const out = await res.json();
+        if (!res.ok) { alert(out.error || "Failed to request reapproval"); return; }
+
+        flash("Re-Approval Requested ✅");
+        setTimeout(() => { window.location.href = "/user_dashboard"; }, 1200);
+    }
+</script>
+</body>
+</html>

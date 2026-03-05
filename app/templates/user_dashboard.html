@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIRECTORATE OF ECONOMICS AND STATISTICS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    :root {
+        --primary: #1e5a8e;
+        --primary-dark: #14436b;
+        --primary-light: #2b6fa8;
+        --secondary: #fbbf24;
+        --success: #10b981;
+        --warning: #fbbf24;
+        --danger: #ef4444;
+        --info: #3b82f6;
+        --dark: #0c3d5d;
+        --gray-50: #f8fafc;
+        --gray-100: #f1f5f9;
+        --gray-200: #e2e8f0;
+        --gray-300: #cbd5e1;
+        --gray-600: #475569;
+        --gray-700: #334155;
+        --gray-800: #1e293b;
+        --gray-900: #0f172a;
+        --border-radius: 12px;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: #1e5a8e;
+        min-height: 100vh;
+        padding: 2rem 1rem;
+        color: var(--gray-800);
+    }
+
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .header {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 1.5rem 2rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-lg);
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 2rem;
+    }
+
+    .logo {
+        height: 100px;
+        width: 100px;
+        object-fit: contain;
+    }
+
+    .header-content {
+        text-align: center;
+    }
+
+    .header-content h1 {
+        font-size: 1.35rem;
+        font-weight: 600;
+        color: var(--primary);
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        background: var(--gray-50);
+        border-radius: 8px;
+        border: 1px solid var(--gray-200);
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s;
+        min-width: 200px;
+    }
+
+    .user-info:hover {
+        background: var(--gray-100);
+        border-color: var(--gray-300);
+    }
+
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 1.125rem;
+        flex-shrink: 0;
+    }
+
+    .status-badge {
+        padding: 0.375rem 0.875rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    .status-pending  { background: #fed7aa; color: #92400e; }
+    .status-approved { background: #d1fae5; color: #065f46; }
+    .status-rejected { background: #fee2e2; color: #991b1b; }
+
+    .user-details {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+
+    .user-name {
+        font-weight: 600;
+        color: var(--gray-900);
+        font-size: 0.875rem;
+    }
+
+    .user-role {
+        font-size: 0.75rem;
+        color: var(--gray-600);
+    }
+
+    .dropdown-icon {
+        color: var(--gray-600);
+        font-size: 0.75rem;
+        transition: transform 0.2s;
+    }
+
+    .user-info.active .dropdown-icon {
+        transform: rotate(180deg);
+    }
+
+    .user-dropdown {
+        position: absolute;
+        top: calc(100% + 0.5rem);
+        right: 0;
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--shadow-xl);
+        border: 1px solid var(--gray-200);
+        min-width: 280px;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.3s;
+        z-index: 1000;
+    }
+
+    .user-dropdown.active {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .dropdown-header {
+        padding: 1.25rem;
+        border-bottom: 2px solid var(--gray-100);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .dropdown-header .user-avatar {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+
+    .dropdown-header-info h4 {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-bottom: 0.25rem;
+    }
+
+    .dropdown-header-info p {
+        font-size: 0.75rem;
+        color: var(--gray-600);
+    }
+
+    .dropdown-menu { padding: 0.5rem; }
+
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.875rem 1rem;
+        color: var(--gray-700);
+        text-decoration: none;
+        border-radius: 8px;
+        transition: all 0.2s;
+        cursor: pointer;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+    }
+
+    .dropdown-item:hover { background: var(--gray-50); color: var(--gray-900); }
+    .dropdown-item i { width: 1.25rem; font-size: 1rem; }
+
+    .dropdown-item.logout {
+        color: var(--danger);
+        border-top: 1px solid var(--gray-100);
+        margin-top: 0.5rem;
+    }
+
+    .dropdown-item.logout:hover { background: #fee2e2; }
+
+    .card {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        box-shadow: var(--shadow-lg);
+        margin-bottom: 2rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-xl);
+    }
+
+    .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--gray-100);
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .card-header-left {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .card-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .card-title i { color: var(--primary); }
+
+    .controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .select-box, .input {
+        padding: 0.875rem 1rem;
+        border: 2px solid var(--gray-200);
+        border-radius: 8px;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        background: white;
+        color: var(--gray-900);
+        width: 100%;
+    }
+
+    .select-box:focus, .input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(30, 90, 142, 0.1);
+    }
+
+    .btn {
+        padding: 0.875rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    .btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow);
+    }
+
+    .btn:active:not(:disabled) { transform: translateY(0); }
+
+    .btn-primary  { background: var(--secondary); color: var(--dark); font-weight: 700; }
+    .btn-primary:hover:not(:disabled) { background: #f59e0b; }
+    .btn-success  { background: var(--success); color: white; }
+    .btn-view     { background: var(--info); color: white; }
+    .btn-danger   { background: var(--danger); color: white; }
+    .btn-delete   { background: var(--danger); color: white; }
+    .btn-edit     { background: var(--warning); color: white; }
+    .btn-refresh  { background: var(--primary); color: white; }
+    .btn-remark   { background: #7c3aed; color: white; }
+
+    .btn-sm { padding: 0.5rem 1rem; font-size: 0.75rem; }
+
+    .divider {
+        height: 2px;
+        background: var(--gray-100);
+        margin: 1.5rem 0;
+    }
+
+    .upload-section {
+        background: var(--gray-50);
+        padding: 1.5rem;
+        border-radius: 8px;
+        border: 2px dashed var(--gray-300);
+    }
+
+    .upload-section h4 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-container {
+        overflow-x: auto;
+        border-radius: 8px;
+        border: 1px solid var(--gray-200);
+    }
+
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+    }
+
+    .table thead { background: var(--dark); }
+
+    .table thead th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: white;
+        white-space: nowrap;
+    }
+
+    .table tbody tr {
+        border-bottom: 1px solid var(--gray-200);
+        transition: background 0.2s;
+    }
+
+    .table tbody tr:hover { background: var(--gray-50); }
+
+    .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+    }
+
+    .action-group {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-block;
+    }
+
+    .badge-primary { background: var(--primary); color: white; }
+
+    /* ===== PAGINATION ===== */
+    .pagination-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 1.25rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .pagination-info {
+        font-size: 0.8rem;
+        color: var(--gray-600);
+    }
+
+    .pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    .page-btn {
+        min-width: 34px;
+        height: 34px;
+        border: 1.5px solid var(--gray-200);
+        border-radius: 6px;
+        background: white;
+        color: var(--gray-700);
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        padding: 0 8px;
+    }
+
+    .page-btn:hover:not(:disabled) {
+        background: var(--gray-100);
+        border-color: var(--gray-400);
+    }
+
+    .page-btn.active {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+    }
+
+    .page-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    .page-size-select {
+        padding: 0.35rem 0.6rem;
+        border: 1.5px solid var(--gray-200);
+        border-radius: 6px;
+        font-size: 0.8rem;
+        color: var(--gray-700);
+        background: white;
+        cursor: pointer;
+    }
+
+    /* ===== MODALS ===== */
+    .modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    .modal.active {
+        display: flex;
+        animation: fadeIn 0.2s ease-in;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        max-width: 500px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: var(--shadow-xl);
+        animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-header {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--gray-100);
+    }
+
+    .modal-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--gray-900);
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 2px solid var(--gray-100);
+    }
+
+    .btn-ghost {
+        background: transparent;
+        color: var(--gray-700);
+        border: 2px solid var(--gray-300);
+    }
+
+    .btn-ghost:hover { background: var(--gray-50); border-color: var(--gray-400); }
+
+    /* Remark modal */
+    .remark-box {
+        background: #fef2f2;
+        border: 1.5px solid #fca5a5;
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+        color: #7f1d1d;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .remark-meta {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .remark-meta-item {
+        font-size: 0.8rem;
+        color: var(--gray-600);
+    }
+
+    .remark-meta-item strong {
+        color: var(--gray-900);
+    }
+
+    /* Profile modal */
+    .profile-modal {
+        max-width: 420px;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .profile-header {
+        background: linear-gradient(135deg, #1e5a8e, #2563eb);
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        color: white;
+    }
+
+    .profile-body { padding: 20px; }
+
+    .profile-field {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .profile-field span { color: #64748b; font-size: 14px; }
+    .profile-field strong { font-size: 14px; color: #0f172a; }
+    #profileTitle { margin: 0; }
+    #profileSubTitle { font-size: 12px; opacity: 0.85; }
+
+    .preview-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8rem;
+        margin-top: 10px;
+    }
+
+    .preview-table td, .preview-table th {
+        border: 1px solid var(--gray-200);
+        padding: 6px 10px;
+    }
+
+    .preview-table tr:nth-child(even) { background: var(--gray-50); }
+
+    /* ── FILTER TABS (History) ── */
+    .upload-tabs {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.25rem;
+    }
+
+    .upload-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.55rem 1.25rem;
+        border-radius: 999px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        border: 2px solid transparent;
+        background: #f1f5f9;
+        color: #64748b;
+        transition: all 0.18s ease;
+        user-select: none;
+    }
+
+    .upload-tab:hover {
+        background: #e2e8f0;
+        color: #334155;
+    }
+
+    .upload-tab .tab-icon {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+    }
+
+    .upload-tab .tab-count {
+        background: rgba(0,0,0,.08);
+        border-radius: 999px;
+        padding: .1rem .45rem;
+        font-size: .7rem;
+        font-weight: 700;
+        min-width: 20px;
+        text-align: center;
+    }
+
+    /* ALL */
+    .upload-tab.tab-all.active,
+    .upload-tab.tab-all:hover {
+        background: #1e5a8e;
+        color: white;
+        border-color: #1e5a8e;
+    }
+    .upload-tab.tab-all .tab-icon { background: #fbbf24; color: #7c3a00; }
+    .upload-tab.tab-all.active .tab-count { background: rgba(255,255,255,.25); }
+
+    /* PENDING */
+    .upload-tab.tab-pending.active,
+    .upload-tab.tab-pending:hover {
+        background: #fffbeb;
+        color: #92400e;
+        border-color: #fcd34d;
+    }
+    .upload-tab.tab-pending .tab-icon { background: #fde68a; color: #92400e; font-size: .8rem; }
+    .upload-tab.tab-pending.active .tab-count { background: #fde68a; color: #92400e; }
+
+    /* APPROVED */
+    .upload-tab.tab-approved.active,
+    .upload-tab.tab-approved:hover {
+        background: #f0fdf4;
+        color: #065f46;
+        border-color: #6ee7b7;
+    }
+    .upload-tab.tab-approved .tab-icon { background: #d1fae5; color: #059669; }
+    .upload-tab.tab-approved.active .tab-count { background: #a7f3d0; color: #065f46; }
+
+    /* REJECTED */
+    .upload-tab.tab-rejected.active,
+    .upload-tab.tab-rejected:hover {
+        background: #fff1f2;
+        color: #991b1b;
+        border-color: #fca5a5;
+    }
+    .upload-tab.tab-rejected .tab-icon { background: #fee2e2; color: #dc2626; }
+    .upload-tab.tab-rejected.active .tab-count { background: #fecaca; color: #991b1b; }
+
+    .dashboard-tabs {
+        display: flex;
+        gap: 0;
+        margin-bottom: 20px;
+        background: white;
+        border-radius: 50px;
+        padding: 6px;
+        box-shadow: var(--shadow-lg);
+        width: 100%;
+    }
+
+    .dashboard-tab {
+        flex: 1;
+        padding: 12px 20px;
+        border-radius: 50px;
+        border: none;
+        cursor: pointer;
+        background: transparent;
+        color: var(--gray-700);
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.25s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        white-space: nowrap;
+    }
+
+    .dashboard-tab:hover:not(.active) {
+        background: var(--gray-100);
+        color: var(--gray-900);
+    }
+
+    .dashboard-tab.active {
+        background: var(--secondary);
+        color: var(--dark);
+        font-weight: 700;
+        box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Spinning refresh icon */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinning { animation: spin 0.7s linear infinite; }
+
+    @media (max-width: 968px) {
+        .header {
+            grid-template-columns: auto 1fr;
+            gap: 1rem;
+            padding: 1.25rem 1.5rem;
+        }
+        .header-content { grid-column: 1 / -1; }
+        .header-content h1 { font-size: 0.95rem; }
+        .user-info { grid-column: 1 / -1; justify-self: center; }
+    }
+
+    @media (max-width: 768px) {
+        .controls { grid-template-columns: 1fr; }
+        .action-group { flex-direction: column; }
+        .action-group .btn { width: 100%; }
+        .user-info { width: 100%; max-width: 300px; }
+        .card-header { flex-direction: column; align-items: flex-start; }
+    }
+
+    @media (max-width: 640px) {
+        body { padding: 1rem 0.5rem; }
+        .header { padding: 1rem; }
+        .header-content h1 { font-size: 0.8rem; }
+        .card { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <img src="/static/images/py_logo.jpeg" alt="Logo" class="logo">
+
+        <div class="header-content">
+            <h1>DIRECTORATE OF ECONOMICS AND STATISTICS</h1>
+            <h1 style="color: #cc6600;">பொருளாதாரம் மற்றும் புள்ளியியல் இயக்ககம்</h1>
+        </div>
+
+        <div class="user-info" onclick="toggleUserDropdown()">
+            <div class="user-avatar" id="userAvatar">U</div>
+            <div class="user-details">
+                <div class="user-name" id="currentUserName">Loading...</div>
+                <div class="user-role" id="currentUserDept">Department</div>
+            </div>
+            <i class="fas fa-chevron-down dropdown-icon"></i>
+
+            <div class="user-dropdown" id="userDropdown">
+                <div class="dropdown-header">
+                    <div class="user-avatar" id="dropdownAvatar">U</div>
+                    <div class="dropdown-header-info">
+                        <h4 id="dropdownUserName">User</h4>
+                        <p id="dropdownUserDept">Department</p>
+                    </div>
+                </div>
+                <div class="dropdown-menu">
+                    <button class="dropdown-item" onclick="openProfileFromMenu(event)">
+                        <i class="fas fa-user-circle"></i>
+                        <span>View Profile</span>
+                    </button>
+                    <button class="dropdown-item" onclick="openChangePassword(); event.stopPropagation();">
+                        <i class="fas fa-key"></i>
+                        <span>Change Password</span>
+                    </button>
+                    <button class="dropdown-item logout" onclick="logout(); event.stopPropagation();">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD TABS -->
+    <div class="dashboard-tabs">
+        <button class="dashboard-tab active" id="tabBtnUpload" onclick="switchTab('uploadTab', this)">
+            📤 Upload Register
+        </button>
+        <button class="dashboard-tab" id="tabBtnHistory" onclick="switchTab('historyTab', this)">
+            📜 Upload History
+        </button>
+    </div>
+
+    <!-- UPLOAD TAB -->
+    <div id="uploadTab" class="tab-content active">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="fas fa-database"></i> Department Transaction Registers
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="form-group">
+                    <select id="registerSelect" class="select-box">
+                        <option value="">-- Select Register --</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary" onclick="downloadTemplate()">
+                    <i class="fas fa-download"></i> Download Template
+                </button>
+
+                <button class="btn btn-view" onclick="viewData()">
+                    <i class="fas fa-search"></i> View Data
+                </button>
+
+                <button class="btn" onclick="viewReport()" style="background-color: gray; color: white;">
+                    📊 Generate Report
+                </button>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="upload-section">
+                <h4><i class="fas fa-cloud-upload-alt"></i> Upload Register File</h4>
+                <div class="controls">
+                    <input type="file" id="uploadFile" accept=".xlsx,.xls" onchange="previewExcel(event)">
+                    <button class="btn btn-success" onclick="uploadRegister()">
+                        <i class="fas fa-upload"></i> Upload Register
+                    </button>
+                </div>
+                <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
+                    <input type="checkbox" id="replaceExisting">
+                    <label for="replaceExisting" style="font-size:14px; font-weight:500; color:#334155;">
+                        Replace existing data if already uploaded
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HISTORY TAB -->
+    <div id="historyTab" class="tab-content">
+        <!-- <div class="upload-tabs">
+            <button class="upload-tab tab-all active" data-filter="all" onclick="setUploadFilter('all', this)">
+                <span class="tab-icon"><i class="fas fa-folder"></i></span>
+                All
+                <span class="tab-count" id="tab-count-all">0</span>
+            </button>
+            <button class="upload-tab tab-pending" data-filter="pending" onclick="setUploadFilter('pending', this)">
+                <span class="tab-icon"><i class="fas fa-hourglass-half"></i></span>
+                Pending
+                <span class="tab-count" id="tab-count-pending">0</span>
+            </button>
+            <button class="upload-tab tab-approved" data-filter="approved" onclick="setUploadFilter('approved', this)">
+                <span class="tab-icon"><i class="fas fa-check-circle"></i></span>
+                Approved
+                <span class="tab-count" id="tab-count-approved">0</span>
+            </button>
+            <button class="upload-tab tab-rejected" data-filter="rejected" onclick="setUploadFilter('rejected', this)">
+                <span class="tab-icon"><i class="fas fa-times-circle"></i></span>
+                Rejected
+                <span class="tab-count" id="tab-count-rejected">0</span>
+            </button>
+        </div> -->
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-left">
+                    <div class="card-title">
+                        <i class="fas fa-history"></i> Upload History
+                    </div>
+                    <span class="badge badge-primary" id="uploadCount">0 Uploads</span>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+                    <!-- ✅ NEW: Search input -->
+                    <input id="searchUpload" class="input" placeholder=" Search uploads..."
+                           onkeyup="onSearch()" style="max-width:240px; padding:0.5rem 0.875rem;">
+
+                    <!-- ✅ NEW: Refresh button -->
+                    <!-- <button class="btn btn-refresh btn-sm" onclick="refreshHistory()" id="refreshBtn" title="Refresh">
+                        <i class="fas fa-sync-alt" id="refreshIcon"></i> Refresh
+                    </button> -->
+                </div>
+            </div>
+             <div class="upload-tabs">
+            <button class="upload-tab tab-all active" data-filter="all" onclick="setUploadFilter('all', this)">
+                <span class="tab-icon"><i class="fas fa-folder"></i></span>
+                All
+                <span class="tab-count" id="tab-count-all">0</span>
+            </button>
+            <button class="upload-tab tab-pending" data-filter="pending" onclick="setUploadFilter('pending', this)">
+                <span class="tab-icon"><i class="fas fa-hourglass-half"></i></span>
+                Pending
+                <span class="tab-count" id="tab-count-pending">0</span>
+            </button>
+            <button class="upload-tab tab-approved" data-filter="approved" onclick="setUploadFilter('approved', this)">
+                <span class="tab-icon"><i class="fas fa-check-circle"></i></span>
+                Approved
+                <span class="tab-count" id="tab-count-approved">0</span>
+            </button>
+            <button class="upload-tab tab-rejected" data-filter="rejected" onclick="setUploadFilter('rejected', this)">
+                <span class="tab-icon"><i class="fas fa-times-circle"></i></span>
+                Rejected
+                <span class="tab-count" id="tab-count-rejected">0</span>
+            </button>
+        </div>
+
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Filename</th>
+                            <th>Uploaded On</th>
+                            <th>Status</th>
+                            <th style="width:300px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="uploadTableBody"></tbody>
+                </table>
+            </div>
+
+            <!-- ✅ NEW: Pagination controls -->
+            <div class="pagination-wrapper" id="paginationWrapper">
+                <div class="pagination-info" id="paginationInfo">Showing 0–0 of 0</div>
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                    <label style="font-size:0.8rem; color:var(--gray-600);">Rows per page:</label>
+                    <select class="page-size-select" id="pageSizeSelect" onchange="onPageSizeChange()">
+                        <option value="10" selected>10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    <div class="pagination-controls" id="paginationControls"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== REJECTION REMARK POPUP ===== -->
+<div id="remarkModal" class="modal">
+    <div class="modal-content" style="max-width:480px;">
+        <div class="modal-header" style="border-bottom-color:#fca5a5;">
+            <div style="display:flex; align-items:center; gap:0.625rem;">
+                <span style="font-size:1.4rem;">❌</span>
+                <h3 class="modal-title" style="color:#991b1b;">Rejection Remark</h3>
+            </div>
+        </div>
+
+        <div class="remark-meta" id="remarkMeta"></div>
+
+        <div class="remark-box" id="remarkText">—</div>
+
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeRemarkModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Excel Preview Modal -->
+<div id="excelPreviewModal" class="modal">
+    <div class="modal-content" style="width:90%; max-width:900px; max-height:80vh; overflow:auto;">
+        <div class="modal-header">
+            <h3 class="modal-title">Excel Preview (First 10 Rows)</h3>
+        </div>
+        <div id="excelPreviewTable"></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closePreview()">Cancel</button>
+            <button class="btn btn-primary" onclick="confirmUpload()">
+                <i class="fas fa-upload"></i> Upload Register
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div id="changePasswordModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Change Password</h3>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:1rem;">
+            <div class="form-group">
+                <label style="font-weight:600; color:var(--gray-700); font-size:0.875rem;">Current Password</label>
+                <input type="password" id="currentPassword" class="input" placeholder="Enter current password">
+            </div>
+            <div class="form-group">
+                <label style="font-weight:600; color:var(--gray-700); font-size:0.875rem;">New Password</label>
+                <input type="password" id="newPassword" class="input" placeholder="Enter new password">
+            </div>
+            <div class="form-group">
+                <label style="font-weight:600; color:var(--gray-700); font-size:0.875rem;">Confirm New Password</label>
+                <input type="password" id="confirmPassword" class="input" placeholder="Confirm new password">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeChangePasswordModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitChangePassword()">
+                <i class="fas fa-save"></i> Update Password
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Profile Modal -->
+<div id="profileModal" class="modal">
+    <div class="modal-content profile-modal">
+        <div class="profile-header">
+            <div>
+                <h3 id="profileTitle">My Profile</h3><br>
+                <small id="profileSubTitle">Account Details</small>
+            </div>
+        </div>
+        <div class="profile-body">
+            <div class="profile-field">
+                <span>Username :</span>
+                <strong id="profileUsername"></strong>
+            </div>
+            <div class="profile-field">
+                <span>Department :</span>
+                <strong id="profileDepartment"></strong>
+            </div>
+            <div class="profile-field">
+                <span>Role :</span>
+                <strong id="profileRole"></strong>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="closeProfileModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentUser      = {};
+    let allUploads       = [];          // raw data from API
+    let filteredUploads  = [];          // after filter + search
+    let activeUploadFilter = "all";
+    let selectedFile     = null;
+    let rowDataMap       = {};          // id → row object, for safe remark lookup
+
+    // ===== PAGINATION STATE =====
+    let currentPage = 1;
+    let pageSize    = 10;
+
+    // ===== TOAST =====
+    function showToast(msg, type = "success") {
+        const colors = { success: "#16a34a", error: "#dc2626", warn: "#f59e0b", info: "#2563eb" };
+        const d = document.createElement("div");
+        d.style.cssText = `position:fixed;top:20px;right:20px;background:${colors[type]};
+            color:#fff;padding:12px 18px;border-radius:8px;
+            box-shadow:0 6px 18px rgba(0,0,0,.2);z-index:10000;
+            font-weight:600;animation:slideIn 0.3s ease;font-family:inherit;`;
+        d.innerText = msg;
+        document.body.appendChild(d);
+        setTimeout(() => {
+            d.style.animation = "slideOut 0.3s ease";
+            setTimeout(() => d.remove(), 300);
+        }, 3000);
+    }
+
+    const toastStyle = document.createElement("style");
+    toastStyle.textContent = `
+        @keyframes slideIn  { from { transform:translateX(400px);opacity:0; } to { transform:translateX(0);opacity:1; } }
+        @keyframes slideOut { from { transform:translateX(0);opacity:1; }     to { transform:translateX(400px);opacity:0; } }
+    `;
+    document.head.appendChild(toastStyle);
+
+    // ===== CONFIRM DIALOG =====
+    function showConfirm(msg, yesFn) {
+        const existing = document.getElementById("cfx");
+        if (existing) existing.remove();
+
+        document.body.insertAdjacentHTML("beforeend", `
+            <div id="cfx" style="position:fixed;inset:0;background:rgba(0,0,0,.45);
+            display:flex;align-items:center;justify-content:center;z-index:10000;">
+                <div style="background:#fff;padding:22px 26px;border-radius:10px;
+                     text-align:center;max-width:400px;width:90%;">
+                    <p style="margin-bottom:16px;font-size:16px;">${msg}</p>
+                    <button id="cfxYes" style="margin-right:10px;background:#dc2626;color:#fff;
+                        padding:8px 20px;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Yes</button>
+                    <button id="cfxNo" style="padding:8px 20px;border:1px solid #ddd;
+                        background:#fff;border-radius:6px;cursor:pointer;font-weight:600;">Cancel</button>
+                </div>
+            </div>`);
+
+        document.getElementById("cfxYes").onclick = () => { document.getElementById("cfx").remove(); yesFn(); };
+        document.getElementById("cfxNo").onclick  = () => document.getElementById("cfx").remove();
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        // ✅ SECURITY: Strip any URL params/hash — prevent tab forcing via URL
+        history.replaceState(null, '', window.location.pathname);
+        init();
+    });
+
+    // ✅ SECURITY: Block browser back/forward from re-exposing tab state
+    window.addEventListener('popstate', () => {
+        history.replaceState(null, '', window.location.pathname);
+    });
+
+    async function init() {
+        await loadCurrentUser();
+        await loadRegisters();
+        await loadUploadHistory();
+    }
+
+    // ===== TAB SWITCHING =====
+    function switchTab(tabId, btn) {
+        // ✅ SECURITY: Never expose tab name in URL
+        history.replaceState(null, '', window.location.pathname);
+
+        document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+        document.querySelectorAll(".dashboard-tab").forEach(b => b.classList.remove("active"));
+        document.getElementById(tabId).classList.add("active");
+        btn.classList.add("active");
+    }
+
+    function setUploadFilter(filter, btn) {
+        activeUploadFilter = filter;
+        currentPage = 1;
+        document.querySelectorAll(".upload-tab").forEach(tab => tab.classList.remove("active"));
+        btn.classList.add("active");
+        applyFilterAndRender();
+    }
+
+    // ===== USER =====
+    async function loadCurrentUser() {
+        try {
+            const profile = await fetch("/api/current_user").then(r => r.json());
+            currentUser = profile;
+            const initial = profile.username ? profile.username.charAt(0).toUpperCase() : "U";
+            document.getElementById("currentUserName").textContent  = profile.username   || "User";
+            document.getElementById("currentUserDept").textContent  = profile.department || "Department";
+            document.getElementById("userAvatar").textContent       = initial;
+            document.getElementById("dropdownAvatar").textContent   = initial;
+            document.getElementById("dropdownUserName").textContent = profile.username   || "User";
+            document.getElementById("dropdownUserDept").textContent = profile.department || "Department";
+        } catch (e) {
+            console.error("Failed to load user profile", e);
+            showToast("Failed to load user profile", "error");
+        }
+    }
+
+    function toggleUserDropdown() {
+        document.getElementById("userDropdown")?.classList.toggle("active");
+    }
+
+    document.addEventListener("click", function (event) {
+        const userInfo = document.querySelector(".user-info");
+        const dropdown = document.getElementById("userDropdown");
+        if (dropdown && !userInfo?.contains(event.target)) {
+            dropdown.classList.remove("active");
+        }
+    });
+
+    function viewProfile() {
+        document.getElementById("userDropdown").classList.remove("active");
+        document.getElementById("profileUsername").innerText   = currentUser.username   || "";
+        document.getElementById("profileDepartment").innerText = currentUser.department || "";
+        document.getElementById("profileRole").innerText       = currentUser.role       || "";
+        document.getElementById("profileModal").classList.add("active");
+    }
+
+    function closeProfileModal() {
+        document.getElementById("profileModal").classList.remove("active");
+    }
+
+    function openProfileFromMenu(e) {
+        e.stopPropagation();
+        document.getElementById("userDropdown").classList.remove("active");
+        viewProfile();
+    }
+
+    // ===== CHANGE PASSWORD =====
+    function openChangePassword() {
+        document.getElementById("userDropdown")?.classList.remove("active");
+        document.getElementById("changePasswordModal")?.classList.add("active");
+    }
+
+    function closeChangePasswordModal() {
+        document.getElementById("changePasswordModal")?.classList.remove("active");
+        document.getElementById("currentPassword").value = "";
+        document.getElementById("newPassword").value     = "";
+        document.getElementById("confirmPassword").value = "";
+    }
+
+    async function submitChangePassword() {
+        const currentPassword = document.getElementById("currentPassword")?.value;
+        const newPassword     = document.getElementById("newPassword")?.value;
+        const confirmPassword = document.getElementById("confirmPassword")?.value;
+
+        if (!currentPassword || !newPassword || !confirmPassword)
+            return showToast("Please fill in all fields", "error");
+        if (newPassword !== confirmPassword)
+            return showToast("New passwords do not match", "error");
+        if (newPassword.length < 6)
+            return showToast("Password must be at least 6 characters long", "error");
+
+        try {
+            const res  = await fetch("/api/change_password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast(data.message || "Password changed successfully!", "success");
+                closeChangePasswordModal();
+            } else {
+                showToast(data.error || "Failed to change password", "error");
+            }
+        } catch (e) {
+            showToast("Failed to change password", "error");
+        }
+    }
+
+    // ===== LOGOUT =====
+    function logout() {
+        document.getElementById("userDropdown")?.classList.remove("active");
+        showConfirm("Are you sure you want to logout?", () => {
+            window.location.href = "/logout";
+        });
+    }
+
+    // ===== REGISTERS =====
+    async function loadRegisters() {
+        try {
+            const res       = await fetch("/api/transaction_tables");
+            const registers = await res.json();
+            const select    = document.getElementById("registerSelect");
+            select.innerHTML = `<option value="">-- Select Register --</option>`;
+
+            if (!Array.isArray(registers)) {
+                showToast("Register API returned invalid data", "error");
+                return;
+            }
+
+            registers.forEach(r => {
+                const opt       = document.createElement("option");
+                opt.value       = r.table_name;
+                opt.textContent = r.label;
+                select.appendChild(opt);
+            });
+        } catch (e) {
+            console.error("Failed to load registers", e);
+            showToast("Failed to load registers", "error");
+        }
+    }
+
+    function downloadTemplate() {
+        const table = document.getElementById("registerSelect").value;
+        if (!table) return showToast("Please select a register.", "error");
+        window.location.href = `/download_register_template?table=${encodeURIComponent(table)}&t=${Date.now()}`;
+    }
+
+    function viewData() {
+        const table = document.getElementById("registerSelect").value;
+        if (!table) return showToast("Please select a register.", "error");
+        window.location.href = `/view_excel_data?table=${encodeURIComponent(table)}&mode=view`;
+    }
+
+    function viewReport() {
+        const table = document.getElementById("registerSelect").value;
+        if (!table) return showToast("Please select a register.", "error");
+        window.location.href = `/report/view?table=${encodeURIComponent(table)}`;
+    }
+
+    // ===== UPLOAD =====
+    async function uploadRegister() {
+        const table   = document.getElementById("registerSelect").value;
+        const file    = document.getElementById("uploadFile").files[0];
+        const replace = document.getElementById("replaceExisting")?.checked || false;
+
+        if (!table) return showToast("Please select a register.", "error");
+        if (!file)  return showToast("Please choose a file.", "error");
+
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("table_name", table);
+        fd.append("replace_existing", replace);
+
+        try {
+            const res = await fetch("/upload_transaction", { method: "POST", body: fd });
+            const out = await res.json();
+
+            if (res.ok) {
+                showToast(out.message || "Upload successful!", "success");
+                document.getElementById("uploadFile").value        = "";
+                document.getElementById("replaceExisting").checked = false;
+                loadUploadHistory();
+            } else if (res.status === 409) {
+                showConfirm(
+                    out.error || "Duplicate data exists. Replace existing data?",
+                    () => {
+                        document.getElementById("replaceExisting").checked = true;
+                        uploadRegister();
+                    }
+                );
+            } else {
+                showToast(out.error || "Upload failed", "error");
+            }
+        } catch (e) {
+            console.error(e);
+            showToast("Upload failed", "error");
+        }
+    }
+
+    // ===== EXCEL PREVIEW =====
+    function previewExcel(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        selectedFile = file;
+
+        const reader    = new FileReader();
+        reader.onload   = function (e) {
+            const data     = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: "array" });
+            const sheet    = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+            let html = "<table class='preview-table'>";
+            jsonData.slice(0, 10).forEach(row => {
+                html += "<tr>";
+                row.forEach(cell => { html += `<td>${cell ?? ""}</td>`; });
+                html += "</tr>";
+            });
+            html += "</table>";
+
+            document.getElementById("excelPreviewTable").innerHTML = html;
+            document.getElementById("excelPreviewModal").classList.add("active");
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function closePreview() {
+        document.getElementById("excelPreviewModal").classList.remove("active");
+    }
+
+    function confirmUpload() {
+        closePreview();
+        uploadRegister();
+    }
+
+    // ===== UPLOAD HISTORY =====
+    async function loadUploadHistory() {
+        try {
+            const dept = currentUser.department ? encodeURIComponent(currentUser.department) : "";
+            const res  = await fetch(`/uploads?department=${dept}`);
+            const rows = await res.json();
+            allUploads = rows || [];
+            rowDataMap  = {};  // reset map on every reload
+
+            // DEBUG: log what the API actually returns
+            if (allUploads.length > 0) {
+                console.log('📦 /uploads API sample row:', JSON.stringify(allUploads[0]));
+                console.log('🔑 Keys:', Object.keys(allUploads[0]).join(', '));
+                console.log('💬 rejection_reason:', allUploads[0].rejection_reason);
+            }
+
+            currentPage = 1;
+            applyFilterAndRender();
+        } catch (e) {
+            console.error("Failed to load upload history", e);
+            showToast("Failed to load upload history", "error");
+        }
+    }
+
+    // ✅ NEW: Refresh button handler with spinning icon
+    async function refreshHistory() {
+        const icon = document.getElementById("refreshIcon");
+        icon.classList.add("spinning");
+        document.getElementById("refreshBtn").disabled = true;
+
+        try {
+            await loadUploadHistory();
+            showToast("History refreshed", "success");
+        } catch (e) {
+            showToast("Refresh failed", "error");
+        } finally {
+            icon.classList.remove("spinning");
+            document.getElementById("refreshBtn").disabled = false;
+        }
+    }
+
+    // ✅ NEW: Search handler (resets to page 1)
+    function onSearch() {
+        currentPage = 1;
+        applyFilterAndRender();
+    }
+
+    // ✅ NEW: Page size change handler
+    function onPageSizeChange() {
+        pageSize    = parseInt(document.getElementById("pageSizeSelect").value);
+        currentPage = 1;
+        renderPage();
+    }
+
+    // ===== FILTER + SEARCH → build filteredUploads then render =====
+    function applyFilterAndRender() {
+        const q = (document.getElementById("searchUpload")?.value || "").trim().toLowerCase();
+
+        filteredUploads = allUploads.filter(r => {
+            // Status filter
+            const statusVal  = r.status_;
+            const isPending  = statusVal === null || statusVal === undefined || statusVal === "";
+            const isApproved = String(statusVal) === "1";
+            const isRejected = String(statusVal) === "0";
+
+            if (activeUploadFilter === "pending"  && !isPending)  return false;
+            if (activeUploadFilter === "approved" && !isApproved) return false;
+            if (activeUploadFilter === "rejected" && !isRejected) return false;
+
+            // Search filter
+            if (q) {
+                const haystack = [
+                    String(r.id),
+                    r.filename       || "",
+                    r.rejection_reason || ""
+                ].join(" ").toLowerCase();
+                if (!haystack.includes(q)) return false;
+            }
+
+            return true;
+        });
+
+        updateTabCounts();
+
+        document.getElementById("uploadCount").textContent =
+            `${filteredUploads.length} Upload${filteredUploads.length !== 1 ? "s" : ""}`;
+
+        renderPage();
+    }
+
+    function updateTabCounts() {
+        const all      = allUploads.length;
+        const pending  = allUploads.filter(r => r.status_ === null || r.status_ === undefined || r.status_ === "").length;
+        const approved = allUploads.filter(r => String(r.status_) === "1").length;
+        const rejected = allUploads.filter(r => String(r.status_) === "0").length;
+
+        const elAll      = document.getElementById("tab-count-all");
+        const elPending  = document.getElementById("tab-count-pending");
+        const elApproved = document.getElementById("tab-count-approved");
+        const elRejected = document.getElementById("tab-count-rejected");
+
+        if (elAll)      elAll.textContent      = all;
+        if (elPending)  elPending.textContent  = pending;
+        if (elApproved) elApproved.textContent = approved;
+        if (elRejected) elRejected.textContent = rejected;
+    }
+
+    // ✅ NEW: Render only the rows for currentPage
+    function renderPage() {
+        const tbody      = document.getElementById("uploadTableBody");
+        const totalItems = filteredUploads.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+        // Clamp currentPage
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1)          currentPage = 1;
+
+        const start = (currentPage - 1) * pageSize;
+        const end   = Math.min(start + pageSize, totalItems);
+        const slice = filteredUploads.slice(start, end);
+
+        // Update pagination info
+        document.getElementById("paginationInfo").textContent =
+            totalItems === 0
+                ? "No results"
+                : `Showing ${start + 1}–${end} of ${totalItems}`;
+
+        // Render rows
+        if (!slice.length) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:3rem;color:#9ca3af;">No uploads found</td></tr>`;
+        } else {
+            tbody.innerHTML = slice.map(r => buildRow(r)).join("");
+        }
+
+        // Render pagination buttons
+        renderPaginationControls(totalPages);
+    }
+
+    // ✅ NEW: Build pagination button strip
+    function renderPaginationControls(totalPages) {
+        const ctrl = document.getElementById("paginationControls");
+        let html   = "";
+
+        html += `<button class="page-btn" onclick="goToPage(${currentPage - 1})"
+                     ${currentPage === 1 ? "disabled" : ""}>
+                     <i class="fas fa-chevron-left"></i>
+                 </button>`;
+
+        // Show smart window of page numbers
+        const window_size = 5;
+        let startP = Math.max(1, currentPage - Math.floor(window_size / 2));
+        let endP   = Math.min(totalPages, startP + window_size - 1);
+        if (endP - startP < window_size - 1) startP = Math.max(1, endP - window_size + 1);
+
+        if (startP > 1) {
+            html += `<button class="page-btn" onclick="goToPage(1)">1</button>`;
+            if (startP > 2) html += `<span style="align-self:center;padding:0 4px;color:var(--gray-600)">…</span>`;
+        }
+
+        for (let p = startP; p <= endP; p++) {
+            html += `<button class="page-btn ${p === currentPage ? "active" : ""}" onclick="goToPage(${p})">${p}</button>`;
+        }
+
+        if (endP < totalPages) {
+            if (endP < totalPages - 1) html += `<span style="align-self:center;padding:0 4px;color:var(--gray-600)">…</span>`;
+            html += `<button class="page-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+        }
+
+        html += `<button class="page-btn" onclick="goToPage(${currentPage + 1})"
+                     ${currentPage === totalPages ? "disabled" : ""}>
+                     <i class="fas fa-chevron-right"></i>
+                 </button>`;
+
+        ctrl.innerHTML = html;
+    }
+
+    function goToPage(page) {
+        const totalPages = Math.ceil(filteredUploads.length / pageSize) || 1;
+        if (page < 1 || page > totalPages) return;
+        currentPage = page;
+        renderPage();
+        // Scroll to top of table smoothly
+        document.querySelector(".table-container")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    // ===== BUILD A TABLE ROW =====
+    function buildRow(r) {
+        // Robust status detection
+        const statusVal  = r.status_;
+        const isApproved = statusVal === 1 || statusVal === "1" || statusVal === true;
+        const isRejected = statusVal === 0 || statusVal === "0" || statusVal === false;
+        const isPending  = !isApproved && !isRejected;
+
+        const statusBadge = isPending
+            ? `<span class="status-badge status-pending"><i class="fas fa-clock"></i> Pending</span>`
+            : isApproved
+                ? `<span class="status-badge status-approved"><i class="fas fa-check-circle"></i> Approved</span>`
+                : `<span class="status-badge status-rejected"><i class="fas fa-times-circle"></i> Rejected</span>`;
+
+        const canEdit   = r.can_edit   === true;
+        const canDelete = r.can_delete === true;
+
+        // Store row in a map so onclick can safely retrieve it by ID — avoids quote-breaking
+        rowDataMap[r.id] = r;
+
+        let actions = `<div class="action-group">
+            <button class="btn btn-view btn-sm" onclick="openViewPage('${escapeJs(r.table_name)}', ${r.id})">
+                <i class="fas fa-eye"></i> View
+            </button>`;
+
+        if (isPending && canEdit) {
+            actions += `
+                <button class="btn btn-edit btn-sm" onclick="openEditPage('${escapeJs(r.table_name)}', ${r.id})">
+                    <i class="fas fa-pen"></i> Edit
+                </button>`;
+        }
+
+        if (isApproved) {
+            actions += `
+                <button class="btn btn-sm" disabled
+                    style="background:#f1f5f9;color:#94a3b8;border:1.5px solid #e2e8f0;cursor:not-allowed;opacity:1;"
+                    title="This upload has been approved and is locked">
+                    <i class="fas fa-lock"></i> Locked
+                </button>`;
+        }
+
+        if (isPending && canDelete) {
+            actions += `
+                <button class="btn btn-delete btn-sm" onclick="deleteUpload(${r.id})">
+                    <i class="fas fa-trash"></i> Delete
+                </button>`;
+        }
+
+        if (isRejected) {
+            actions += `
+                <button class="btn btn-edit btn-sm" onclick="openRejectedEditPage('${escapeJs(r.table_name)}', ${r.id})">
+                    <i class="fas fa-pen"></i> Edit Rejected
+                </button>`;
+        }
+
+        // ✅ Use row ID to retrieve remark safely — no escaping issues with quotes/newlines
+        if (isRejected) {
+            const hasRemark = r.rejection_reason && r.rejection_reason.trim() !== "";
+            if (hasRemark) {
+                actions += `
+                    <button class="btn btn-remark btn-sm" onclick="showRemarkById(${r.id})">
+                        <i class="fas fa-comment-alt"></i> View Remark
+                    </button>`;
+            }
+        }
+
+        actions += `</div>`;
+
+        return `
+            <tr>
+                <td><strong>${r.id}</strong></td>
+                <td>${escapeHtml(r.filename)}</td>
+                <td>${r.updated_date ? new Date(r.updated_date).toLocaleString() : "-"}</td>
+                <td>${statusBadge}</td>
+                <td>${actions}</td>
+            </tr>`;
+    }
+
+    // ✅ Show remark popup — safe lookup by row ID avoids all quote-escaping issues
+    function showRemarkById(id) {
+        const r = rowDataMap[id];
+        if (!r) return;
+
+        const remark   = r.rejection_reason || "(No remark recorded)";
+        const filename = r.filename         || "";
+        const date     = r.updated_date ? new Date(r.updated_date).toLocaleString() : "-";
+
+        document.getElementById("remarkMeta").innerHTML = `
+            <div class="remark-meta-item"><strong>File:</strong> ${escapeHtml(filename)}</div>
+            <div class="remark-meta-item"><strong>Rejected On:</strong> ${date}</div>`;
+        document.getElementById("remarkText").textContent = remark;
+        document.getElementById("remarkModal").classList.add("active");
+    }
+
+    // Legacy alias kept in case anything else calls it
+    function showRemark(remark, filename, date) {
+        document.getElementById("remarkMeta").innerHTML = `
+            <div class="remark-meta-item"><strong>File:</strong> ${escapeHtml(filename)}</div>
+            <div class="remark-meta-item"><strong>Rejected On:</strong> ${date}</div>`;
+        document.getElementById("remarkText").textContent = remark;
+        document.getElementById("remarkModal").classList.add("active");
+    }
+
+    function closeRemarkModal() {
+        document.getElementById("remarkModal").classList.remove("active");
+    }
+
+    // ===== DELETE =====
+    async function deleteUpload(id) {
+        showConfirm("Are you sure you want to delete this upload?", async () => {
+            try {
+                const res = await fetch(`/uploads/${id}`, { method: "DELETE" });
+                const out = await res.json();
+                if (res.ok) {
+                    showToast(out.message || "Deleted successfully", "success");
+                    loadUploadHistory();
+                } else {
+                    showToast(out.error || "Delete failed", "error");
+                }
+            } catch (e) {
+                showToast("Delete failed", "error");
+            }
+        });
+    }
+
+    // ===== PAGE NAVIGATION =====
+    function openEditPage(table, uploadId) {
+        window.location.href = `/view_excel_data?table=${encodeURIComponent(table)}&mode=edit&upload_id=${uploadId}`;
+    }
+
+    function openViewPage(table, uploadId) {
+        window.location.href = `/view_excel_data?table=${encodeURIComponent(table)}&mode=view&upload_id=${uploadId}`;
+    }
+
+    function openRejectedEditPage(table, uploadId) {
+        window.location.href = `/view_excel_data?table=${encodeURIComponent(table)}&mode=edit&upload_id=${uploadId}&only_rejected=true`;
+    }
+
+    // ===== UTILS =====
+    function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text ?? "";
+        return div.innerHTML;
+    }
+
+    function escapeJs(text) {
+        return String(text).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+
+    // Escape for use inside HTML attribute single-quotes
+    function escapeAttr(text) {
+        return String(text ?? "")
+            .replace(/\\/g, "\\\\")
+            .replace(/'/g, "&#39;")
+            .replace(/"/g, "&quot;")
+            .replace(/\n/g, " ");
+    }
+
+    // ===== CLOSE MODALS ON BACKDROP CLICK =====
+    document.getElementById("changePasswordModal")?.addEventListener("click", (e) => {
+        if (e.target.id === "changePasswordModal") closeChangePasswordModal();
+    });
+    document.getElementById("profileModal")?.addEventListener("click", (e) => {
+        if (e.target.id === "profileModal") closeProfileModal();
+    });
+    document.getElementById("excelPreviewModal")?.addEventListener("click", (e) => {
+        if (e.target.id === "excelPreviewModal") closePreview();
+    });
+    document.getElementById("remarkModal")?.addEventListener("click", (e) => {
+        if (e.target.id === "remarkModal") closeRemarkModal();
+    });
+</script>
+</body>
+</html>

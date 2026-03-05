@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Government Statistical Report</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+body {
+    font-family: Inter, sans-serif;
+    background: #1e5a8e;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1400px;
+    margin: auto;
+}
+
+.card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 10px 25px rgba(0,0,0,.15);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+select, button {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    font-size: 14px;
+}
+
+button {
+    background: #2563eb;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+button.secondary { background: #10b981; }
+button.excel { background: #059669; }
+button.back { background: #475569; }
+
+.table-container {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+thead {
+    background: #0c3d5d;
+    color: white;
+}
+
+th, td {
+    padding: 10px;
+    border: 1px solid #e5e7eb;
+}
+
+td.num { text-align: right; }
+
+.group-row {
+    background: #f1f5f9;
+    font-weight: 700;
+}
+
+.total-row {
+    background: #e2e8f0;
+    font-weight: 700;
+}
+
+.center { text-align: center; }
+</style>
+</head>
+
+<body>
+<div class="container">
+<div class="card">
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="title" id="reportTitle">📊 Report</div>
+        <button class="back" onclick="goHome()">⬅ Back</button>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="filters">
+        <select id="yearFilter">
+            <option value="">-- Select Year --</option>
+        </select>
+
+        <button onclick="reloadReport()">Apply</button>
+        <button class="secondary" onclick="downloadPDF()">Download PDF</button>
+        <button class="excel" onclick="downloadExcel()">Download Excel</button>
+    </div>
+
+    <!-- REPORT TABLE -->
+    <div class="table-container">
+        <table id="reportTable">
+            <thead>
+                <tr>
+                    <th style="width:60px">Sl.No</th>
+                    <th>Item</th>
+                    <th>Puducherry</th>
+                    <th>Karaikal</th>
+                    <th>Mahe</th>
+                    <th>Yanam</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody id="reportBody"></tbody>
+        </table>
+    </div>
+
+</div>
+</div>
+
+<script>
+	
+/* ---------------- PARAM HELPERS ---------------- */
+function getParam(name) {
+    return new URLSearchParams(window.location.search).get(name) || "";
+}
+
+/* ---------------- LOAD YEAR FILTER ---------------- */
+async function loadFilters() {
+
+    const ySel = document.getElementById("yearFilter");
+
+    // Reset
+    ySel.innerHTML = `<option value="">-- Select Year --</option>`;
+
+    try {
+
+        const res = await fetch("/api/years");
+        const years = await res.json();
+
+        const seen = new Set();   // avoid duplicate year_desc
+
+        years.forEach(y => {
+
+            if (!seen.has(y.year_desc)) {
+                seen.add(y.year_desc);
+
+                const opt = document.createElement("option");
+
+                // IMPORTANT CHANGE
+                opt.value = y.year_desc;      // send year_desc
+                opt.textContent = y.year_desc;
+
+                ySel.appendChild(opt);
+            }
+        });
+
+        // restore from URL
+        const selected = getParam("year");
+        if (selected) {
+            ySel.value = selected;
+        }
+
+    } catch (err) {
+        console.error("Failed to load years", err);
+    }
+}
+
+
+
+
+
+/* ---------------- LOAD REPORT ---------------- */
+async function loadReport() {
+    const table = getParam("table");
+    const year = getParam("year");
+
+    if (!table || !year) return;
+
+    const url = `/api/report/${table}?year=${year}`;
+    console.log("Fetching:", url);
+
+    const res = await fetch(url);
+    if (!res.ok) {
+        console.error("Report API failed");
+        return;
+    }
+
+    const data = await res.json();
+    renderTable(data);
+}
+
+/* ---------------- REPORT TITLE ---------------- */
+async function loadReportTitle() {
+    const table = getParam("table");
+    if (!table) return;
+
+    const res = await fetch(`/api/report/table_label/${table}`);
+    const data = await res.json();
+
+    document.getElementById("reportTitle").innerText =
+        "📊 " + data.label;
+}
+
+/* ---------------- RENDER TABLE ---------------- */
+function renderTable(data) {
+
+    const tbody = document.querySelector("#reportTable tbody");
+    tbody.innerHTML = "";
+
+    const groups = data.groups;
+    const grand = data.grand_total;
+
+    // ----------------------------
+    // Render GROUPS
+    // ----------------------------
+    for (const grpName in groups) {
+
+        const g = groups[grpName];
+
+        // Group header
+        tbody.innerHTML += `
+            <tr class="group-row">
+                <td class="center">${g.roman}</td>
+                <td colspan="6"><strong>${grpName}</strong></td>
+            </tr>
+        `;
+
+        // Detail rows
+        g.rows.forEach(r => {
+            tbody.innerHTML += `
+                <tr>
+                    <td></td>
+                    <td>${r.item}</td>
+                    <td class="num">${r.Puducherry}</td>
+                    <td class="num">${r.Karaikal}</td>
+                    <td class="num">${r.Mahe}</td>
+                    <td class="num">${r.Yanam}</td>
+                    <td class="num">${r.Total}</td>
+                </tr>
+            `;
+        });
+
+        // Group total
+        const t = g.total;
+        tbody.innerHTML += `
+            <tr class="total-row">
+                <td></td>
+                <td><strong>Total ${grpName}</strong></td>
+                <td class="num">${t.Puducherry}</td>
+                <td class="num">${t.Karaikal}</td>
+                <td class="num">${t.Mahe}</td>
+                <td class="num">${t.Yanam}</td>
+                <td class="num">${t.Total}</td>
+            </tr>
+        `;
+    }
+
+    // ----------------------------
+    // GRAND TOTAL (BOTTOM)
+    // ----------------------------
+    tbody.innerHTML += `
+        <tr class="grand-total">
+            <td colspan="2"><strong>GRAND TOTAL</strong></td>
+            <td class="num"><strong>${grand.Puducherry}</strong></td>
+            <td class="num"><strong>${grand.Karaikal}</strong></td>
+            <td class="num"><strong>${grand.Mahe}</strong></td>
+            <td class="num"><strong>${grand.Yanam}</strong></td>
+            <td class="num"><strong>${grand.Total}</strong></td>
+        </tr>
+    `;
+}
+
+/* ---------------- BACK TO HOME ---------------- */
+function goHome() {
+    window.location.href = "/user_dashboard";
+}
+
+/* ---------------- ACTIONS ---------------- */
+function reloadReport() {
+    const p = new URLSearchParams();
+    p.set("table", getParam("table"));
+    p.set("year", document.getElementById("yearFilter").value);
+    location.href = `/report/view?${p.toString()}`;
+}
+
+function downloadPDF() {
+    location.href = `/api/report/${getParam("table")}/pdf?year=${getParam("year")}`;
+}
+
+function downloadExcel() {
+    location.href = `/api/report/${getParam("table")}/excel?year=${getParam("year")}`;
+}
+
+/* ---------------- INIT ---------------- */
+document.addEventListener("DOMContentLoaded", async () => {
+    await loadFilters();
+	await loadReportTitle();
+    await loadReport();
+});
+</script>
+
+</body>
+</html>
