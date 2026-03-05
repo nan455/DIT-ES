@@ -590,8 +590,11 @@
                 <button class="btn btn-back" onclick="goBack()">
                     <i class="fas fa-arrow-left"></i> Back
                 </button>
-                <button class="btn btn-download" onclick="downloadExcel()">
-                    <i class="fas fa-download"></i> Download
+                <button class="btn btn-download" onclick="downloadThisUpload()">
+                    <i class="fas fa-download"></i> Download This Upload
+                </button>
+                <button class="btn btn-download" onclick="downloadAllData()" style="background:#0891b2;">
+                    <i class="fas fa-database"></i> Download All Data
                 </button>
                 <!-- Show "View Rejection Remarks" to users when viewing rejected upload -->
                 <button class="btn btn-remark" id="btnViewRemarks" style="display:none;" onclick="openRemarksModal(false)">
@@ -1609,13 +1612,29 @@
             .catch(() => { window.location.href = "/user_dashboard"; });
     }
 
-    function downloadExcel() {
-        const hideCols = ["created_by","created_date","updated_by","updated_date",
-                          "status_","upload_id","is_approved","rejection_remark"];
+    function downloadThisUpload() {
+        const hideCols = [
+            "created_by","created_date","updated_by","updated_date",
+            "status_","upload_id","is_approved","rejection_remark"
+        ];
         const params = new URLSearchParams();
         params.append("table", tableName);
-        params.append("filename", `${tableName}.xlsx`);
+        params.append("filename", `${tableName}_upload_${uploadId || "all"}.xlsx`);
         params.append("hide_cols", hideCols.join(","));
+        if (uploadId) params.append("upload_id", uploadId);
+        window.location.href = `/download_excel?${params.toString()}`;
+    }
+
+    function downloadAllData() {
+        const hideCols = [
+            "created_by","created_date","updated_by","updated_date",
+            "status_","upload_id","is_approved","rejection_remark"
+        ];
+        const params = new URLSearchParams();
+        params.append("table", tableName);
+        params.append("filename", `${tableName}_all_data.xlsx`);
+        params.append("hide_cols", hideCols.join(","));
+        // No upload_id → backend returns all rows
         window.location.href = `/download_excel?${params.toString()}`;
     }
 
