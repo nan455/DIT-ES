@@ -5,6 +5,7 @@ import secrets
 from app.routes.report import report_bp
 
 
+
 def create_app(config_object=None):
     """Create Flask app with proper session configuration."""
     app = Flask(__name__)
@@ -50,6 +51,7 @@ def create_app(config_object=None):
     from app.routes.admin import admin_bp
     from app.routes.api import api_bp
     from app.routes.approver import approver_bp
+    from app.routes.grievance_routes import grievance_bp
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(data_bp)
@@ -57,7 +59,8 @@ def create_app(config_object=None):
     app.register_blueprint(api_bp)
     app.register_blueprint(approver_bp)
     app.register_blueprint(report_bp)
-    
+    app.register_blueprint(grievance_bp)
+
     #  Debug middleware (remove in production)
     @app.before_request
     def log_session_info():

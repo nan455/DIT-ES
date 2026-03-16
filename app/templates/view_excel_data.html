@@ -680,7 +680,7 @@
 
     const HIDE_ALWAYS = [
         "created_by","created_date","updated_by","updated_date",
-        "status_","upload_id","rejection_remark"   // hide remark col from main table
+        "status_","upload_id"   // hide remark col from main table
     ];
 
     const urlParams    = new URLSearchParams(window.location.search);
@@ -794,6 +794,9 @@
                 data.rows.forEach(r => {
                     rowRemarks[String(r.id)] = r.remark || "";
                 });
+            }
+            else {
+                console.warn("No row remarks found in response");
             }
         } catch (e) {
             console.warn("Could not load row remarks:", e);
@@ -1553,8 +1556,21 @@
     /* ═══════════════════════════════════════════════
        DELETE ROW
        ═══════════════════════════════════════════════ */
+    // async function deleteRow(pk) {
+    //     if (!canApproveReject) return;
+    //     if (!confirm("Are you sure you want to delete this row?")) return;
+
+    //     await fetch("/api/delete_excel_row", {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/json" },
+    //         body: JSON.stringify({ table: tableName, id: pk })
+    //     });
+
+    //     flash("Row deleted");
+    //     setTimeout(loadTable, 500);
+    // }
     async function deleteRow(pk) {
-        if (!canApproveReject) return;
+         if (!isEditable) return;
         if (!confirm("Are you sure you want to delete this row?")) return;
 
         await fetch("/api/delete_excel_row", {
@@ -1566,6 +1582,7 @@
         flash("Row deleted");
         setTimeout(loadTable, 500);
     }
+
 
     /* ═══════════════════════════════════════════════
        UTILITIES

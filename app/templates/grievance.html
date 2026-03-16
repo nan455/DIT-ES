@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grievance Submission</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        :root {
+            --primary:#1e5a8e; --primary-dark:#14436b;
+            --secondary:#fbbf24; --success:#10b981;
+            --danger:#ef4444;   --info:#3b82f6;
+            --dark:#0c3d5d;
+            --gray-50:#f8fafc;  --gray-100:#f1f5f9;
+            --gray-200:#e2e8f0; --gray-300:#cbd5e1;
+            --gray-600:#475569; --gray-700:#334155;
+            --gray-900:#0f172a;
+            --radius:12px;
+            --shadow-lg:0 10px 15px -3px rgba(0,0,0,.1);
+            --shadow-xl:0 20px 25px -5px rgba(0,0,0,.1);
+        }
+
+        body {
+            font-family:'Inter',sans-serif;
+            background:#1e5a8e;
+            min-height:100vh;
+            padding:2rem 1rem;
+            color:var(--gray-900);
+        }
+
+        .container { max-width:900px; margin:0 auto; }
+
+        /* ── HEADER ── */
+        .header {
+            background:white;
+            border-radius:var(--radius);
+            padding:1.5rem 2rem;
+            margin-bottom:2rem;
+            box-shadow:var(--shadow-lg);
+            display:grid;
+            grid-template-columns:auto 1fr auto;
+            align-items:center;
+            gap:2rem;
+        }
+        .logo { height:80px; width:80px; object-fit:contain; }
+        .header-content { text-align:center; }
+        .header-content h1 { font-size:1.2rem; font-weight:700; color:var(--primary); line-height:1.4; }
+
+        /* ── CARDS ── */
+        .card {
+            background:white;
+            border-radius:var(--radius);
+            padding:2rem;
+            box-shadow:var(--shadow-lg);
+            margin-bottom:1.5rem;
+        }
+
+        .card-title {
+            font-size:1.25rem;
+            font-weight:700;
+            color:var(--gray-900);
+            display:flex;
+            align-items:center;
+            gap:.75rem;
+            margin-bottom:1.5rem;
+            padding-bottom:1rem;
+            border-bottom:2px solid var(--gray-100);
+        }
+        .card-title i { color:var(--primary); }
+
+        /* ── FORM ── */
+        .form-grid { display:grid; gap:1.25rem; }
+
+        .form-group { display:flex; flex-direction:column; gap:.5rem; }
+
+        .form-label {
+            font-weight:600;
+            font-size:.875rem;
+            color:var(--gray-700);
+            display:flex;
+            align-items:center;
+            gap:.4rem;
+        }
+
+        .form-label .req { color:var(--danger); }
+
+        .form-control {
+            padding:.875rem 1rem;
+            border:2px solid var(--gray-200);
+            border-radius:8px;
+            font-size:.875rem;
+            font-family:inherit;
+            color:var(--gray-900);
+            transition:all .2s;
+            width:100%;
+            background:white;
+        }
+        .form-control:focus {
+            outline:none;
+            border-color:var(--primary);
+            box-shadow:0 0 0 3px rgba(30,90,142,.1);
+        }
+
+        textarea.form-control { min-height:120px; resize:vertical; }
+
+        /* ── FILE UPLOAD ZONE ── */
+        .upload-zone {
+            border:2px dashed var(--gray-300);
+            border-radius:10px;
+            padding:2rem;
+            text-align:center;
+            cursor:pointer;
+            transition:all .2s;
+            background:var(--gray-50);
+            position:relative;
+        }
+        .upload-zone:hover, .upload-zone.drag-over {
+            border-color:var(--primary);
+            background:#eff6ff;
+        }
+        .upload-zone input[type="file"] {
+            position:absolute; inset:0; opacity:0; cursor:pointer; width:100%;
+        }
+        .upload-zone-icon { font-size:2rem; color:var(--gray-300); margin-bottom:.75rem; }
+        .upload-zone-text { font-size:.875rem; color:var(--gray-600); }
+        .upload-zone-text strong { color:var(--primary); }
+        .upload-preview {
+            display:flex; align-items:center; gap:.75rem;
+            background:#eff6ff; border:1px solid #bfdbfe;
+            border-radius:8px; padding:.75rem 1rem;
+            margin-top:.75rem; font-size:.85rem;
+        }
+        .upload-preview i { color:var(--info); font-size:1.25rem; }
+        .upload-preview .file-name { color:var(--gray-700); font-weight:500; flex:1; }
+        .upload-preview .remove-file {
+            cursor:pointer; color:var(--danger);
+            background:none; border:none; font-size:1rem;
+        }
+
+        /* ── TICKET RESULT BANNER ── */
+        .ticket-banner {
+            display:none;
+            background:linear-gradient(135deg,#ecfdf5,#d1fae5);
+            border:2px solid #6ee7b7;
+            border-radius:12px;
+            padding:1.5rem 2rem;
+            margin-bottom:1.5rem;
+            text-align:center;
+        }
+        .ticket-banner.show { display:block; animation:fadeIn .4s ease; }
+        .ticket-banner .ticket-icon { font-size:3rem; margin-bottom:.5rem; }
+        .ticket-banner h3 { font-size:1.25rem; font-weight:700; color:#065f46; margin-bottom:.5rem; }
+        .ticket-banner .ticket-no-display {
+            display:inline-block;
+            background:white;
+            border:2px solid #6ee7b7;
+            border-radius:8px;
+            padding:.5rem 1.5rem;
+            font-size:1.5rem;
+            font-weight:700;
+            color:#065f46;
+            letter-spacing:.1em;
+            margin:.5rem 0;
+        }
+        .ticket-banner p { font-size:.85rem; color:#065f46; }
+
+        /* ── BUTTONS ── */
+        .btn {
+            padding:.875rem 1.75rem;
+            border:none; border-radius:8px;
+            font-weight:700; font-size:.9rem;
+            cursor:pointer; transition:all .2s;
+            display:inline-flex; align-items:center; gap:.5rem;
+        }
+        .btn:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,.15); }
+        .btn:disabled { opacity:.6; cursor:not-allowed; }
+        .btn-primary  { background:var(--secondary); color:var(--dark); }
+        .btn-back     { background:var(--gray-100); color:var(--gray-700); border:2px solid var(--gray-200); }
+        .btn-view     { background:var(--info); color:white; }
+
+        .btn-row { display:flex; gap:1rem; flex-wrap:wrap; margin-top:1rem; }
+
+        /* ── MY TICKETS TABLE ── */
+        .table-wrap { overflow-x:auto; border-radius:8px; border:1px solid var(--gray-200); }
+        table { width:100%; border-collapse:collapse; font-size:.875rem; }
+        thead { background:var(--dark); }
+        thead th { padding:.875rem 1rem; text-align:left; font-weight:600; color:white; white-space:nowrap; }
+        tbody tr { border-bottom:1px solid var(--gray-200); transition:background .15s; }
+        tbody tr:hover { background:var(--gray-50); }
+        tbody td { padding:.875rem 1rem; vertical-align:middle; }
+
+        .status-pill {
+            padding:.3rem .8rem; border-radius:999px;
+            font-size:.72rem; font-weight:700;
+            display:inline-flex; align-items:center; gap:.35rem;
+        }
+        .pill-submitted { background:#dbeafe; color:#1e40af; }
+        .pill-pending   { background:#fef3c7; color:#92400e; }
+        .pill-closed    { background:#d1fae5; color:#065f46; }
+
+        /* ── TABS ── */
+        .tabs { display:flex; gap:0; background:var(--gray-100); border-radius:10px; padding:4px; margin-bottom:1.5rem; }
+        .tab-btn {
+            flex:1; padding:.65rem 1rem; border:none; border-radius:8px;
+            background:transparent; color:var(--gray-600);
+            font-weight:600; font-size:.875rem; cursor:pointer; transition:all .2s;
+        }
+        .tab-btn.active { background:white; color:var(--primary); box-shadow:0 1px 4px rgba(0,0,0,.1); }
+
+        .tab-pane { display:none; }
+        .tab-pane.active { display:block; }
+
+        /* ── TOAST ── */
+        .toast {
+            position:fixed; top:1.5rem; right:1.5rem;
+            padding:.875rem 1.25rem; border-radius:10px;
+            font-weight:600; font-size:.875rem; color:white;
+            box-shadow:var(--shadow-xl); z-index:9999;
+            display:none; align-items:center; gap:.6rem;
+            animation:slideIn .3s ease;
+        }
+        .toast.show { display:flex; }
+        .toast-success { background:#16a34a; }
+        .toast-error   { background:#dc2626; }
+
+        @keyframes fadeIn  { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes slideIn { from{transform:translateX(120%)} to{transform:translateX(0)} }
+
+        @media(max-width:640px) {
+            .header { grid-template-columns:auto 1fr; }
+            .header-content { grid-column:1/-1; }
+            .btn-row { flex-direction:column; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="header">
+        <img src="/static/images/py_logo.jpeg" alt="Logo" class="logo">
+        <div class="header-content">
+            <h1>DIRECTORATE OF ECONOMICS AND STATISTICS</h1>
+            <h1 style="color:#cc6600;">பொருளாதாரம் மற்றும் புள்ளியியல் இயக்ககம்</h1>
+        </div>
+        <button class="btn btn-back" onclick="window.history.back()">
+            <i class="fas fa-arrow-left"></i> Back
+        </button>
+    </div>
+
+    <!-- SUCCESS BANNER (shown after submit) -->
+    <div class="ticket-banner" id="ticketBanner">
+        <div class="ticket-icon">✅</div>
+        <h3>Grievance Submitted Successfully!</h3>
+        <p>Your ticket number is:</p>
+        <div class="ticket-no-display" id="ticketNoDisplay">—</div>
+        <p>Please note this number to track your grievance status.</p>
+    </div>
+
+    <!-- TABS -->
+    <div class="card" style="padding:1.25rem 2rem;">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('submitTab', this)">
+                <i class="fas fa-plus-circle"></i> Submit Grievance
+            </button>
+            <button class="tab-btn" onclick="switchTab('myTicketsTab', this); loadMyTickets();">
+                <i class="fas fa-ticket-alt"></i> My Tickets
+            </button>
+        </div>
+
+        <!-- ══ TAB 1: SUBMIT ══ -->
+        <div class="tab-pane active" id="submitTab">
+            <div class="card-title">
+                <i class="fas fa-exclamation-circle"></i> Grievance Submission
+            </div>
+
+            <div class="form-grid">
+                <!-- Type -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-tag"></i>
+                        Select Type of Grievance <span class="req">*</span>
+                    </label>
+                    <select class="form-control" id="grievanceType">
+                        <option value="">-- Select grievance type --</option>
+                    </select>
+                </div>
+
+                <!-- Details -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-align-left"></i>
+                        Details of Grievance <span class="req">*</span>
+                    </label>
+                    <textarea class="form-control" id="grievanceDetails"
+                        placeholder="Please describe your issue in detail..."></textarea>
+                </div>
+
+                <!-- Attachment -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-paperclip"></i>
+                        Upload Screenshot / Attachment
+                        <span style="font-weight:400;color:var(--gray-600);font-size:.8rem;">(optional — image, PDF, max 5MB)</span>
+                    </label>
+                    <div class="upload-zone" id="uploadZone">
+                        <input type="file" id="attachmentFile" accept="image/*,.pdf,.png,.jpg,.jpeg"
+                               onchange="previewFile(event)">
+                        <div class="upload-zone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                        <div class="upload-zone-text">
+                            <strong>Click to browse</strong> or drag & drop<br>
+                            PNG, JPG, PDF up to 5MB
+                        </div>
+                    </div>
+                    <div class="upload-preview" id="uploadPreview" style="display:none;">
+                        <i class="fas fa-file-image"></i>
+                        <span class="file-name" id="previewFileName"></span>
+                        <button class="remove-file" onclick="removeFile()" title="Remove">
+                            <i class="fas fa-times-circle"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <div class="btn-row">
+                    <button class="btn btn-primary" id="submitBtn" onclick="submitGrievance()">
+                        <i class="fas fa-paper-plane"></i> Submit Grievance
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ TAB 2: MY TICKETS ══ -->
+        <div class="tab-pane" id="myTicketsTab">
+            <div class="card-title">
+                <i class="fas fa-history"></i> My Grievance Tickets
+            </div>
+            <div id="myTicketsContent">
+                <p style="color:var(--gray-600);text-align:center;padding:2rem;">
+                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+<!-- TICKET DETAIL MODAL -->
+<div id="detailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
+    backdrop-filter:blur(4px);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:white;border-radius:16px;width:100%;max-width:620px;max-height:88vh;
+        overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,.25);">
+        <div style="padding:1.5rem;border-bottom:2px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="font-size:1.1rem;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:.5rem;">
+                <i class="fas fa-ticket-alt" style="color:#1e5a8e;"></i> Ticket Detail
+            </h3>
+            <button onclick="closeDetailModal()"
+                style="border:1px solid #e2e8f0;background:#f8fafc;border-radius:8px;
+                       width:34px;height:34px;cursor:pointer;font-size:1rem;color:#475569;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="detailContent" style="padding:1.5rem;"></div>
+    </div>
+</div>
+
+<script>
+/* ── TABS ── */
+function switchTab(id, btn) {
+    document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+    btn.classList.add("active");
+}
+
+/* ── TOAST ── */
+function showToast(msg, type="success") {
+    const el = document.getElementById("toast");
+    el.className = `toast show toast-${type}`;
+    document.getElementById("toastMsg").textContent = msg;
+    setTimeout(() => el.classList.remove("show"), 3500);
+}
+
+/* ── LOAD GRIEVANCE TYPES ── */
+async function loadTypes() {
+    try {
+        const res  = await fetch("/api/grievance/types");
+        const data = await res.json();
+        const sel  = document.getElementById("grievanceType");
+        data.forEach(t => {
+            const o = document.createElement("option");
+            o.value = t.id; o.textContent = t.type_name;
+            sel.appendChild(o);
+        });
+    } catch(e) { console.error(e); }
+}
+
+/* ── FILE PREVIEW ── */
+function previewFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+        showToast("File too large. Max 5MB.", "error");
+        e.target.value = "";
+        return;
+    }
+    document.getElementById("previewFileName").textContent = `${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+    document.getElementById("uploadPreview").style.display = "flex";
+}
+
+function removeFile() {
+    document.getElementById("attachmentFile").value = "";
+    document.getElementById("uploadPreview").style.display = "none";
+}
+
+/* ── SUBMIT ── */
+async function submitGrievance() {
+    const typeId  = document.getElementById("grievanceType").value;
+    const details = document.getElementById("grievanceDetails").value.trim();
+    const file    = document.getElementById("attachmentFile").files[0];
+
+    if (!typeId)   return showToast("Please select a grievance type", "error");
+    if (!details)  return showToast("Please enter the details", "error");
+
+    const btn = document.getElementById("submitBtn");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+    const fd = new FormData();
+    fd.append("grievance_type_id", typeId);
+    fd.append("details", details);
+    if (file) fd.append("attachment", file);
+
+    try {
+        const res  = await fetch("/api/grievance/submit", { method:"POST", body:fd });
+        const data = await res.json();
+
+        if (!res.ok) {
+            showToast(data.error || "Submission failed", "error");
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Grievance';
+            return;
+        }
+
+        // Show success banner
+        document.getElementById("ticketNoDisplay").textContent = data.ticket_no;
+        document.getElementById("ticketBanner").classList.add("show");
+        document.getElementById("ticketBanner").scrollIntoView({ behavior:"smooth" });
+
+        // Reset form
+        document.getElementById("grievanceType").value    = "";
+        document.getElementById("grievanceDetails").value = "";
+        removeFile();
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Grievance';
+
+    } catch(e) {
+        showToast("Network error", "error");
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Grievance';
+    }
+}
+
+/* ── MY TICKETS ── */
+async function loadMyTickets() {
+    const container = document.getElementById("myTicketsContent");
+    container.innerHTML = `<p style="color:#475569;text-align:center;padding:2rem;">
+        <i class="fas fa-spinner fa-spin"></i> Loading...</p>`;
+    try {
+        const res  = await fetch("/api/grievance/my_tickets");
+        const data = await res.json();
+
+        if (!data.length) {
+            container.innerHTML = `<div style="text-align:center;padding:3rem;color:#9ca3af;">
+                <i class="fas fa-ticket-alt" style="font-size:2.5rem;margin-bottom:1rem;display:block;opacity:.3;"></i>
+                You have not submitted any grievances yet.
+            </div>`;
+            return;
+        }
+
+        const statusClass = { Submitted:"pill-submitted", Pending:"pill-pending", Closed:"pill-closed" };
+        const statusIcon  = { Submitted:"fa-paper-plane", Pending:"fa-clock", Closed:"fa-check-circle" };
+
+        let html = `<div class="table-wrap"><table>
+            <thead><tr>
+                <th>Ticket No.</th><th>Type</th><th>Details</th>
+                <th>Attachment</th><th>Status</th><th>Date</th><th>Action</th>
+            </tr></thead><tbody>`;
+
+        data.forEach(t => {
+            const sc  = statusClass[t.status] || "pill-submitted";
+            const si  = statusIcon[t.status]  || "fa-info-circle";
+            const dt  = t.created_at ? new Date(t.created_at).toLocaleDateString("en-IN") : "-";
+            const det = t.details.length > 50 ? t.details.slice(0,50)+"…" : t.details;
+            html += `<tr>
+                <td><strong style="color:#1e5a8e;">${t.ticket_no}</strong></td>
+                <td>${t.grievance_type}</td>
+                <td>${escHtml(det)}</td>
+                <td style="text-align:center;">
+                    ${t.has_attachment
+                        ? `<a href="/api/grievance/attachment/${t.id}" target="_blank"
+                               style="color:#3b82f6;font-size:.8rem;">
+                               <i class="fas fa-paperclip"></i> View</a>`
+                        : `<span style="color:#9ca3af;font-size:.8rem;">—</span>`}
+                </td>
+                <td><span class="status-pill ${sc}">
+                    <i class="fas ${si}"></i> ${t.status}
+                </span></td>
+                <td style="font-size:.8rem;color:#64748b;">${dt}</td>
+                <td><button onclick="viewTicket('${t.ticket_no}')"
+                        style="background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;
+                               border-radius:6px;padding:.35rem .75rem;font-size:.75rem;
+                               font-weight:600;cursor:pointer;">
+                        <i class="fas fa-eye"></i> View
+                    </button></td>
+            </tr>`;
+        });
+
+        html += "</tbody></table></div>";
+        container.innerHTML = html;
+
+    } catch(e) {
+        container.innerHTML = `<p style="color:red;text-align:center;padding:2rem;">Failed to load tickets</p>`;
+    }
+}
+
+/* ── TICKET DETAIL MODAL ── */
+async function viewTicket(ticketNo) {
+    const modal   = document.getElementById("detailModal");
+    const content = document.getElementById("detailContent");
+    modal.style.display = "flex";
+    content.innerHTML   = `<p style="text-align:center;color:#475569;padding:2rem;">
+        <i class="fas fa-spinner fa-spin"></i> Loading...</p>`;
+
+    try {
+        const res  = await fetch(`/api/grievance/ticket/${ticketNo}`);
+        const data = await res.json();
+        if (!res.ok) { content.innerHTML = `<p style="color:red;">${data.error}</p>`; return; }
+
+        const t  = data.ticket;
+        const sc = { Submitted:"#dbeafe|#1e40af", Pending:"#fef3c7|#92400e", Closed:"#d1fae5|#065f46" };
+        const [bg,fg] = (sc[t.status_name] || "#f1f5f9|#475569").split("|");
+
+        let html = `
+        <div style="display:flex;flex-direction:column;gap:1rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;">
+                <div style="font-size:1.4rem;font-weight:800;color:#0f172a;letter-spacing:.05em;">${t.ticket_no}</div>
+                <span style="background:${bg};color:${fg};padding:.35rem .9rem;border-radius:999px;font-size:.78rem;font-weight:700;">
+                    ${t.status_name}
+                </span>
+            </div>
+
+            <div style="background:#f8fafc;border-radius:10px;padding:1rem;display:grid;grid-template-columns:1fr 1fr;gap:.75rem;font-size:.85rem;">
+                <div><span style="color:#64748b;">Type:</span><br><strong>${t.type_name}</strong></div>
+                <div><span style="color:#64748b;">Submitted by:</span><br><strong>${t.submitted_by}</strong></div>
+                <div><span style="color:#64748b;">Department:</span><br><strong>${t.department || "—"}</strong></div>
+                <div><span style="color:#64748b;">Date:</span><br><strong>${new Date(t.created_at).toLocaleString("en-IN")}</strong></div>
+            </div>
+
+            <div>
+                <div style="font-weight:600;font-size:.85rem;color:#334155;margin-bottom:.4rem;">Details</div>
+                <div style="background:white;border:1.5px solid #e2e8f0;border-radius:8px;padding:.875rem;font-size:.875rem;line-height:1.6;">${escHtml(t.details)}</div>
+            </div>
+
+            ${t.has_attachment ? `
+            <div>
+                <a href="/api/grievance/attachment/${t.id}" target="_blank"
+                   style="display:inline-flex;align-items:center;gap:.5rem;background:#eff6ff;
+                          color:#1e40af;border:1px solid #bfdbfe;border-radius:8px;
+                          padding:.5rem 1rem;font-size:.85rem;font-weight:600;text-decoration:none;">
+                    <i class="fas fa-paperclip"></i> View Attachment
+                </a>
+            </div>` : ""}
+
+            ${t.admin_remark ? `
+            <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:.875rem;">
+                <div style="font-weight:700;font-size:.8rem;color:#166534;margin-bottom:.4rem;">
+                    <i class="fas fa-comment-dots"></i> Admin Response
+                </div>
+                <div style="font-size:.875rem;color:#166534;">${escHtml(t.admin_remark)}</div>
+            </div>` : ""}
+
+            ${data.logs.length ? `
+            <div>
+                <div style="font-weight:600;font-size:.85rem;color:#334155;margin-bottom:.6rem;">
+                    <i class="fas fa-history"></i> Activity Log
+                </div>
+                <div style="display:flex;flex-direction:column;gap:.5rem;">
+                ${data.logs.map(l => `
+                    <div style="display:flex;gap:.75rem;font-size:.8rem;">
+                        <div style="width:8px;height:8px;border-radius:50%;background:#3b82f6;margin-top:.35rem;flex-shrink:0;"></div>
+                        <div>
+                            <strong>${l.action}</strong> — ${l.action_by}
+                            ${l.remark ? `<br><span style="color:#64748b;">${escHtml(l.remark)}</span>` : ""}
+                            <br><span style="color:#94a3b8;">${new Date(l.created_at).toLocaleString("en-IN")}</span>
+                        </div>
+                    </div>`).join("")}
+                </div>
+            </div>` : ""}
+        </div>`;
+
+        content.innerHTML = html;
+    } catch(e) {
+        content.innerHTML = `<p style="color:red;">Failed to load detail</p>`;
+    }
+}
+
+function closeDetailModal() {
+    document.getElementById("detailModal").style.display = "none";
+}
+
+function escHtml(t) {
+    const d = document.createElement("div");
+    d.textContent = t ?? "";
+    return d.innerHTML;
+}
+
+/* ── DRAG & DROP ── */
+const zone = document.getElementById("uploadZone");
+zone.addEventListener("dragover",  e => { e.preventDefault(); zone.classList.add("drag-over"); });
+zone.addEventListener("dragleave", () => zone.classList.remove("drag-over"));
+zone.addEventListener("drop", e => {
+    e.preventDefault();
+    zone.classList.remove("drag-over");
+    const file = e.dataTransfer.files[0];
+    if (file) {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        document.getElementById("attachmentFile").files = dt.files;
+        previewFile({ target: { files: dt.files } });
+    }
+});
+
+document.getElementById("detailModal").addEventListener("click", function(e) {
+    if (e.target === this) closeDetailModal();
+});
+
+/* ── INIT ── */
+loadTypes();
+</script>
+</body>
+</html>

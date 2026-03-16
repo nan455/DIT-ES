@@ -234,6 +234,7 @@
     }
 
     .dropdown-item.logout:hover { background: #fee2e2; }
+    .dropdown-item:has(i.fa-ticket-alt):hover { background: #f5f3ff; }
 
     .card {
         background: white;
@@ -818,6 +819,11 @@
                         <i class="fas fa-key"></i>
                         <span>Change Password</span>
                     </button>
+                    <button class="dropdown-item" onclick="window.location.href='/grievance'; event.stopPropagation();"
+                        style="color:#7c3aed;">
+                        <i class="fas fa-ticket-alt"></i>
+                        <span>Submit Grievance</span>
+                    </button>
                     <button class="dropdown-item logout" onclick="logout(); event.stopPropagation();">
                         <i class="fas fa-sign-out-alt"></i>
                         <span>Logout</span>
@@ -888,50 +894,7 @@
 
     <!-- HISTORY TAB -->
     <div id="historyTab" class="tab-content">
-        <!-- <div class="upload-tabs">
-            <button class="upload-tab tab-all active" data-filter="all" onclick="setUploadFilter('all', this)">
-                <span class="tab-icon"><i class="fas fa-folder"></i></span>
-                All
-                <span class="tab-count" id="tab-count-all">0</span>
-            </button>
-            <button class="upload-tab tab-pending" data-filter="pending" onclick="setUploadFilter('pending', this)">
-                <span class="tab-icon"><i class="fas fa-hourglass-half"></i></span>
-                Pending
-                <span class="tab-count" id="tab-count-pending">0</span>
-            </button>
-            <button class="upload-tab tab-approved" data-filter="approved" onclick="setUploadFilter('approved', this)">
-                <span class="tab-icon"><i class="fas fa-check-circle"></i></span>
-                Approved
-                <span class="tab-count" id="tab-count-approved">0</span>
-            </button>
-            <button class="upload-tab tab-rejected" data-filter="rejected" onclick="setUploadFilter('rejected', this)">
-                <span class="tab-icon"><i class="fas fa-times-circle"></i></span>
-                Rejected
-                <span class="tab-count" id="tab-count-rejected">0</span>
-            </button>
-        </div> -->
-
-        <div class="card">
-            <div class="card-header">
-                <div class="card-header-left">
-                    <div class="card-title">
-                        <i class="fas fa-history"></i> Upload History
-                    </div>
-                    <span class="badge badge-primary" id="uploadCount">0 Uploads</span>
-                </div>
-
-                <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
-                    <!-- ✅ NEW: Search input -->
-                    <input id="searchUpload" class="input" placeholder=" Search uploads..."
-                           onkeyup="onSearch()" style="max-width:240px; padding:0.5rem 0.875rem;">
-
-                    <!-- ✅ NEW: Refresh button -->
-                    <!-- <button class="btn btn-refresh btn-sm" onclick="refreshHistory()" id="refreshBtn" title="Refresh">
-                        <i class="fas fa-sync-alt" id="refreshIcon"></i> Refresh
-                    </button> -->
-                </div>
-            </div>
-             <div class="upload-tabs">
+        <div class="upload-tabs">
             <button class="upload-tab tab-all active" data-filter="all" onclick="setUploadFilter('all', this)">
                 <span class="tab-icon"><i class="fas fa-folder"></i></span>
                 All
@@ -953,6 +916,27 @@
                 <span class="tab-count" id="tab-count-rejected">0</span>
             </button>
         </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-left">
+                    <div class="card-title">
+                        <i class="fas fa-history"></i> Upload History
+                    </div>
+                    <span class="badge badge-primary" id="uploadCount">0 Uploads</span>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+                    <!-- ✅ NEW: Search input -->
+                    <input id="searchUpload" class="input" placeholder="🔍 Search uploads..."
+                           onkeyup="onSearch()" style="max-width:240px; padding:0.5rem 0.875rem;">
+
+                    <!-- ✅ NEW: Refresh button -->
+                    <button class="btn btn-refresh btn-sm" onclick="refreshHistory()" id="refreshBtn" title="Refresh">
+                        <i class="fas fa-sync-alt" id="refreshIcon"></i> Refresh
+                    </button>
+                </div>
+            </div>
 
             <div class="table-container">
                 <table class="table">

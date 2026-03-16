@@ -267,6 +267,7 @@
         .dropdown-item.logout:hover {
             background: #fee2e2;
         }
+        .dropdown-item:has(i.fa-ticket-alt):hover { background: #f5f3ff; }
 
         .card {
             background: white;
@@ -783,6 +784,11 @@
                         <button class="dropdown-item" onclick="openChangePassword(); event.stopPropagation();">
                             <i class="fas fa-key"></i>
                             <span>Change Password</span>
+                        </button>
+                        <button class="dropdown-item" onclick="window.location.href='/grievance'; event.stopPropagation();"
+                            style="color:#7c3aed;">
+                            <i class="fas fa-ticket-alt"></i>
+                            <span>Submit Grievance</span>
                         </button>
                         <button class="dropdown-item logout" onclick="logout(); event.stopPropagation();">
                             <i class="fas fa-sign-out-alt"></i>

@@ -189,7 +189,7 @@
         .btn-remark { background: #7c3aed; color: white; }
         .btn-remark:hover { background: #6d28d9; }
 
-        .table-container { overflow-x:visible; border-radius: 8px; border: 1px solid var(--gray-200); }
+        .table-container { overflow-x: auto; border-radius: 8px; border: 1px solid var(--gray-200); }
         .table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
         .table thead { background: var(--dark); }
         .table thead th { padding: 1rem; text-align: center; font-weight: 600; color: white; white-space: nowrap; }
@@ -341,14 +341,13 @@
 
         .action-menu {
             display: none;
-            position: absolute;
-            right: 0; top: calc(100% + 6px);
+            position: fixed;
             background: white;
             border: 1px solid var(--gray-200);
             border-radius: 10px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.13);
-            min-width: 170px;
-            z-index: 999;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            min-width: 175px;
+            z-index: 99999;
             overflow: hidden;
             animation: menuPop 0.15s ease-out;
         }
@@ -434,6 +433,7 @@
         <button class="tab" onclick="switchTab('uploads', this)"><i class="fas fa-folder-open"></i> Uploads</button>
         <button class="tab" onclick="switchTab('statistics', this)"><i class="fas fa-chart-pie"></i> Statistics</button>
         <button class="tab" onclick="switchTab('logs', this)"><i class="fas fa-bug"></i> Error Logs</button>
+        <button class="tab" onclick="switchTab('grievance', this); loadGrievanceTickets();"><i class="fas fa-ticket-alt"></i> View Tickets</button>
     </div>
 
     <!-- ══════════════════════════════════════════════ -->
@@ -597,6 +597,88 @@
                 <table class="table">
                     <thead><tr><th>ID</th><th>User</th><th>Endpoint</th><th>Error Message</th><th>Date</th><th>Actions</th></tr></thead>
                     <tbody id="errorLogsBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- GRIEVANCE TICKETS TAB                          -->
+    <!-- ══════════════════════════════════════════════ -->
+    <div id="grievance-tab" class="tab-content">
+
+        <!-- Stats Row -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-bottom:1.5rem;">
+            <div style="background:white;border-radius:12px;padding:1.25rem 1.5rem;box-shadow:0 4px 6px -1px rgba(0,0,0,.1);
+                        display:flex;align-items:center;gap:1rem;border-left:4px solid #3b82f6;">
+                <div style="width:48px;height:48px;border-radius:10px;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">📨</div>
+                <div><div style="font-size:.8rem;color:#64748b;">Submitted</div>
+                     <div style="font-size:2rem;font-weight:800;color:#1e40af;" id="grv-stat-submitted">—</div></div>
+            </div>
+            <div style="background:white;border-radius:12px;padding:1.25rem 1.5rem;box-shadow:0 4px 6px -1px rgba(0,0,0,.1);
+                        display:flex;align-items:center;gap:1rem;border-left:4px solid #f59e0b;">
+                <div style="width:48px;height:48px;border-radius:10px;background:#fef3c7;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">⏳</div>
+                <div><div style="font-size:.8rem;color:#64748b;">Pending</div>
+                     <div style="font-size:2rem;font-weight:800;color:#92400e;" id="grv-stat-pending">—</div></div>
+            </div>
+            <div style="background:white;border-radius:12px;padding:1.25rem 1.5rem;box-shadow:0 4px 6px -1px rgba(0,0,0,.1);
+                        display:flex;align-items:center;gap:1rem;border-left:4px solid #10b981;">
+                <div style="width:48px;height:48px;border-radius:10px;background:#d1fae5;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">✅</div>
+                <div><div style="font-size:.8rem;color:#64748b;">Closed</div>
+                     <div style="font-size:2rem;font-weight:800;color:#065f46;" id="grv-stat-closed">—</div></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title"><i class="fas fa-ticket-alt" style="color:#7c3aed;"></i> Grievance Tickets</div>
+                <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;">
+                    <!-- Filter tabs -->
+                    <div style="display:flex;gap:.4rem;background:#f1f5f9;border-radius:8px;padding:3px;">
+                        <button onclick="setGrvFilter('all',this)"
+                            style="padding:.4rem .9rem;border:none;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;background:#1e5a8e;color:white;"
+                            id="grvFilterAll">All</button>
+                        <button onclick="setGrvFilter('Submitted',this)"
+                            style="padding:.4rem .9rem;border:none;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;background:transparent;color:#64748b;"
+                            id="grvFilterSubmitted">Submitted</button>
+                        <button onclick="setGrvFilter('Pending',this)"
+                            style="padding:.4rem .9rem;border:none;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;background:transparent;color:#64748b;"
+                            id="grvFilterPending">Pending</button>
+                        <button onclick="setGrvFilter('Closed',this)"
+                            style="padding:.4rem .9rem;border:none;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;background:transparent;color:#64748b;"
+                            id="grvFilterClosed">Closed</button>
+                    </div>
+                    <input id="grvSearch" class="input" placeholder="🔍 Search tickets..."
+                           onkeyup="filterGrvTable()"
+                           style="max-width:220px;padding:.45rem .875rem;font-size:.825rem;">
+                    <button onclick="loadGrievanceTickets()"
+                        style="background:#1e5a8e;color:white;border:none;border-radius:8px;
+                               padding:.5rem 1rem;font-size:.8rem;font-weight:600;cursor:pointer;">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="table" id="grvTable">
+                    <thead>
+                        <tr>
+                            <th>Ticket No.</th>
+                            <th>Submitted By</th>
+                            <th>Department</th>
+                            <th>Type</th>
+                            <th>Details</th>
+                            <th>Attachment</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th style="width:160px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="grvTableBody">
+                        <tr><td colspan="9" style="text-align:center;padding:3rem;color:#9ca3af;">
+                            Click "View Tickets" tab to load grievances
+                        </td></tr>
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -1013,8 +1095,7 @@ function renderUploadsPage() {
 
         const isRejected = (status === 0 || status === false || status === '0');
         const hasRemark  = isRejected && row.rejection_reason && row.rejection_reason.trim() !== '';
-        // const canEdit = row.can_edit === true;
-        const canEdit = true; 
+        const canEdit    = true;   // ✅ Admin always has full access — ignore backend lock flag
 
         return `
         <tr>
@@ -1032,14 +1113,9 @@ function renderUploadsPage() {
                         <button class="action-menu-item item-view" onclick="closeAllMenus();viewExcel('${encodeURIComponent(row.table_name)}')">
                             <i class="fas fa-eye"></i> View
                         </button>
-                        ${canEdit
-                            ? `<button class="action-menu-item item-edit" onclick="closeAllMenus();editExcel('${encodeURIComponent(row.table_name)}')">
-                                   <i class="fas fa-edit"></i> Edit
-                               </button>`
-                            : `<button class="action-menu-item item-disabled" disabled>
-                                   <i class="fas fa-lock"></i> Locked
-                               </button>`
-                        }
+                        <button class="action-menu-item item-edit" onclick="closeAllMenus();editExcel('${encodeURIComponent(row.table_name)}')">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
                         <button class="action-menu-item item-download" onclick="closeAllMenus();downloadExcel('${encodeURIComponent(row.filename||'')}','${encodeURIComponent(row.table_name||'')}')">
                             <i class="fas fa-download"></i> Download
                         </button>
@@ -1051,14 +1127,9 @@ function renderUploadsPage() {
                             : ''
                         }
                         <div class="action-menu-divider"></div>
-                        ${canEdit
-                            ? `<button class="action-menu-item item-delete" onclick="closeAllMenus();deleteUpload(${row.id})">
-                                   <i class="fas fa-trash"></i> Delete
-                               </button>`
-                            : `<button class="action-menu-item item-disabled" disabled>
-                                   <i class="fas fa-lock"></i> Locked
-                               </button>`
-                        }
+                        <button class="action-menu-item item-delete" onclick="closeAllMenus();deleteUpload(${row.id})">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
                     </div>
                 </div>
             </td>
@@ -1377,7 +1448,6 @@ async function savePermissions() {
     closePermModal();
 }
 
-
 // ═══════════════════════════════════════════════════════════
 // STATISTICS
 // ═══════════════════════════════════════════════════════════
@@ -1443,19 +1513,54 @@ function filterStatistics() {
 // ═══════════════════════════════════════════════════════════
 function toggleActionMenu(event, menuId) {
     event.stopPropagation();
+    const btn  = event.currentTarget;
     const menu = document.getElementById(menuId);
     if (!menu) return;
+
     const isOpen = menu.classList.contains('open');
     closeAllMenus();
-    if (!isOpen) menu.classList.add('open');
+    if (isOpen) return;   // clicking same button again = close
+
+    // ── Position menu using fixed coords so it escapes any overflow:hidden parent ──
+    const rect = btn.getBoundingClientRect();
+
+    // Temporarily show to measure height
+    menu.style.visibility = 'hidden';
+    menu.style.display    = 'block';
+    const menuH = menu.offsetHeight;
+    const menuW = menu.offsetWidth;
+    menu.style.display    = '';
+    menu.style.visibility = '';
+
+    const viewH = window.innerHeight;
+    const viewW = window.innerWidth;
+
+    // Default: open below the button, aligned to its right edge
+    let top  = rect.bottom + 6;
+    let left = rect.right  - menuW;
+
+    // Flip up if not enough space below
+    if (top + menuH > viewH - 8) {
+        top = rect.top - menuH - 6;
+    }
+    // Prevent going off left edge
+    if (left < 8) left = 8;
+    // Prevent going off right edge
+    if (left + menuW > viewW - 8) left = viewW - menuW - 8;
+
+    menu.style.top  = top  + 'px';
+    menu.style.left = left + 'px';
+
+    menu.classList.add('open');
 }
 
 function closeAllMenus() {
     document.querySelectorAll('.action-menu.open').forEach(m => m.classList.remove('open'));
 }
 
-// Close any open menu when clicking anywhere else on the page
-document.addEventListener('click', closeAllMenus);
+// Close any open menu when clicking elsewhere or scrolling
+document.addEventListener('click',  closeAllMenus);
+document.addEventListener('scroll', closeAllMenus, true);
 
 // ═══════════════════════════════════════════════════════════
 // INIT
@@ -1468,5 +1573,297 @@ async function initAdmin() {
 }
 window.addEventListener('DOMContentLoaded', initAdmin);
 </script>
+<!-- ═══════════════ GRIEVANCE JS ═══════════════ -->
+<script>
+let allGrvTickets  = [];
+let grvFilter      = "all";
+
+/* ── Load all tickets ── */
+async function loadGrievanceTickets() {
+    try {
+        // Stats
+        const sr = await fetch("/api/grievance/stats");
+        if (sr.ok) {
+            const s = await sr.json();
+            document.getElementById("grv-stat-submitted").textContent = s.Submitted ?? 0;
+            document.getElementById("grv-stat-pending").textContent   = s.Pending   ?? 0;
+            document.getElementById("grv-stat-closed").textContent    = s.Closed    ?? 0;
+        }
+
+        // Tickets
+        const res  = await fetch("/api/grievance/all_tickets");
+        const data = await res.json();
+        allGrvTickets = data || [];
+        renderGrvTable();
+    } catch(e) {
+        document.getElementById("grvTableBody").innerHTML =
+            `<tr><td colspan="9" style="text-align:center;padding:2rem;color:#dc2626;">Failed to load tickets</td></tr>`;
+    }
+}
+
+/* ── Filter tab ── */
+function setGrvFilter(f, btn) {
+    grvFilter = f;
+    ["all","Submitted","Pending","Closed"].forEach(k => {
+        const el = document.getElementById(`grvFilter${k === "all" ? "All" : k}`);
+        if (el) el.style.background = k === f ? "#1e5a8e" : "transparent",
+                el.style.color      = k === f ? "white"   : "#64748b";
+    });
+    renderGrvTable();
+}
+
+/* ── Search ── */
+function filterGrvTable() { renderGrvTable(); }
+
+/* ── Render ── */
+function renderGrvTable() {
+    const q    = (document.getElementById("grvSearch")?.value || "").toLowerCase();
+    const rows = allGrvTickets.filter(t => {
+        if (grvFilter !== "all" && t.status !== grvFilter) return false;
+        if (q) {
+            const hay = [t.ticket_no, t.submitted_by, t.department||"",
+                         t.grievance_type, t.details].join(" ").toLowerCase();
+            if (!hay.includes(q)) return false;
+        }
+        return true;
+    });
+
+    const tbody = document.getElementById("grvTableBody");
+
+    if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:3rem;color:#9ca3af;">
+            <i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:.75rem;opacity:.3;"></i>
+            No tickets found</td></tr>`;
+        return;
+    }
+
+    const statusStyle = {
+        Submitted: "background:#dbeafe;color:#1e40af;",
+        Pending:   "background:#fef3c7;color:#92400e;",
+        Closed:    "background:#d1fae5;color:#065f46;"
+    };
+    const statusIcon = { Submitted:"fa-paper-plane", Pending:"fa-clock", Closed:"fa-check-circle" };
+
+    tbody.innerHTML = rows.map(t => {
+        const ss  = statusStyle[t.status] || "background:#f1f5f9;color:#475569;";
+        const si  = statusIcon[t.status]  || "fa-info-circle";
+        const dt  = t.created_at ? new Date(t.created_at).toLocaleDateString("en-IN") : "—";
+        const det = t.details.length > 45 ? t.details.slice(0,45)+"…" : t.details;
+
+        const attachBtn = t.has_attachment
+            ? `<a href="/api/grievance/attachment/${t.id}" target="_blank"
+                   style="color:#3b82f6;font-size:.8rem;"><i class="fas fa-paperclip"></i> View</a>`
+            : `<span style="color:#9ca3af;font-size:.8rem;">—</span>`;
+
+        // Action buttons depending on status
+        const isClosed = t.status === "Closed";
+        const actionBtns = isClosed
+            ? `<button onclick="viewGrvDetail('${t.ticket_no}')"
+                   style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;
+                          border-radius:6px;padding:.35rem .7rem;font-size:.75rem;font-weight:600;cursor:pointer;">
+                   <i class="fas fa-eye"></i> View
+               </button>`
+            : `<button onclick="openGrvAction(${t.id},'${t.ticket_no}','${t.status}')"
+                   style="background:#7c3aed;color:white;border:none;
+                          border-radius:6px;padding:.35rem .75rem;font-size:.75rem;font-weight:600;cursor:pointer;">
+                   <i class="fas fa-edit"></i> Update
+               </button>
+               <button onclick="viewGrvDetail('${t.ticket_no}')" style="margin-left:4px;
+                   background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;
+                   border-radius:6px;padding:.35rem .7rem;font-size:.75rem;font-weight:600;cursor:pointer;">
+                   <i class="fas fa-eye"></i>
+               </button>`;
+
+        return `<tr>
+            <td><strong style="color:#1e5a8e;font-size:.85rem;">${t.ticket_no}</strong></td>
+            <td style="font-weight:600;">${escGrv(t.submitted_by)}</td>
+            <td style="font-size:.82rem;color:#64748b;">${escGrv(t.department||"—")}</td>
+            <td style="font-size:.82rem;">${escGrv(t.grievance_type)}</td>
+            <td style="font-size:.82rem;color:#475569;">${escGrv(det)}</td>
+            <td style="text-align:center;">${attachBtn}</td>
+            <td><span style="${ss}padding:.3rem .8rem;border-radius:999px;font-size:.72rem;font-weight:700;
+                         display:inline-flex;align-items:center;gap:.3rem;">
+                <i class="fas ${si}"></i> ${t.status}
+            </span></td>
+            <td style="font-size:.8rem;color:#64748b;">${dt}</td>
+            <td style="white-space:nowrap;">${actionBtns}</td>
+        </tr>`;
+    }).join("");
+}
+
+/* ── View detail modal ── */
+async function viewGrvDetail(ticketNo) {
+    const modal = document.getElementById("grvDetailModal");
+    modal.style.display = "flex";
+    document.getElementById("grvDetailContent").innerHTML =
+        `<p style="text-align:center;padding:2rem;"><i class="fas fa-spinner fa-spin"></i> Loading...</p>`;
+
+    const res  = await fetch(`/api/grievance/ticket/${ticketNo}`);
+    const data = await res.json();
+    if (!res.ok) {
+        document.getElementById("grvDetailContent").innerHTML = `<p style="color:red;">${data.error}</p>`;
+        return;
+    }
+    const t  = data.ticket;
+    const sc = { Submitted:"#dbeafe|#1e40af", Pending:"#fef3c7|#92400e", Closed:"#d1fae5|#065f46" };
+    const [bg,fg] = (sc[t.status_name]||"#f1f5f9|#475569").split("|");
+
+    document.getElementById("grvDetailContent").innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;">
+            <div style="font-size:1.4rem;font-weight:800;color:#0f172a;">${t.ticket_no}</div>
+            <span style="background:${bg};color:${fg};padding:.35rem .9rem;border-radius:999px;font-size:.78rem;font-weight:700;">${t.status_name}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;background:#f8fafc;border-radius:10px;padding:1rem;font-size:.85rem;">
+            <div><span style="color:#64748b;">Type:</span><br><strong>${t.type_name}</strong></div>
+            <div><span style="color:#64748b;">From:</span><br><strong>${t.submitted_by} (${t.department||"—"})</strong></div>
+            <div><span style="color:#64748b;">Submitted:</span><br><strong>${new Date(t.created_at).toLocaleString("en-IN")}</strong></div>
+            ${t.closed_at ? `<div><span style="color:#64748b;">Closed:</span><br><strong>${new Date(t.closed_at).toLocaleString("en-IN")}</strong></div>` : ""}
+        </div>
+        <div>
+            <div style="font-weight:600;font-size:.85rem;color:#334155;margin-bottom:.4rem;">Details</div>
+            <div style="background:white;border:1.5px solid #e2e8f0;border-radius:8px;padding:.875rem;font-size:.875rem;line-height:1.6;">${escGrv(t.details)}</div>
+        </div>
+        ${t.has_attachment ? `<a href="/api/grievance/attachment/${t.id}" target="_blank"
+            style="display:inline-flex;align-items:center;gap:.5rem;background:#eff6ff;color:#1e40af;
+                   border:1px solid #bfdbfe;border-radius:8px;padding:.5rem 1rem;font-size:.85rem;font-weight:600;text-decoration:none;">
+            <i class="fas fa-paperclip"></i> View Attachment</a>` : ""}
+        ${t.admin_remark ? `<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:.875rem;">
+            <div style="font-weight:700;font-size:.8rem;color:#166534;margin-bottom:.4rem;"><i class="fas fa-comment-dots"></i> Admin Response</div>
+            <div style="font-size:.875rem;color:#166534;">${escGrv(t.admin_remark)}</div>
+        </div>` : ""}
+        ${data.logs.length ? `<div>
+            <div style="font-weight:600;font-size:.85rem;color:#334155;margin-bottom:.6rem;"><i class="fas fa-history"></i> Activity Log</div>
+            <div style="display:flex;flex-direction:column;gap:.5rem;">
+            ${data.logs.map(l => `<div style="display:flex;gap:.75rem;font-size:.8rem;">
+                <div style="width:8px;height:8px;border-radius:50%;background:#3b82f6;margin-top:.35rem;flex-shrink:0;"></div>
+                <div><strong>${l.action}</strong> — ${l.action_by}
+                ${l.remark ? `<br><span style="color:#64748b;">${escGrv(l.remark)}</span>` : ""}
+                <br><span style="color:#94a3b8;">${new Date(l.created_at).toLocaleString("en-IN")}</span></div>
+            </div>`).join("")}
+            </div>
+        </div>` : ""}
+    </div>`;
+}
+
+/* ── Open action modal (update status) ── */
+let grvActionTicketId = null;
+
+function openGrvAction(id, ticketNo, currentStatus) {
+    grvActionTicketId = id;
+    document.getElementById("grvActionTicketLabel").textContent = ticketNo;
+    document.getElementById("grvActionStatus").value = currentStatus === "Submitted" ? "Pending" : "Closed";
+    document.getElementById("grvActionRemark").value = "";
+    document.getElementById("grvActionModal").style.display = "flex";
+}
+
+async function submitGrvAction() {
+    const status = document.getElementById("grvActionStatus").value;
+    const remark = document.getElementById("grvActionRemark").value.trim();
+    if (!remark) { alert("Please enter a remark / resolution note"); return; }
+
+    const btn = document.getElementById("grvActionSubmitBtn");
+    btn.disabled = true; btn.textContent = "Saving...";
+
+    const res  = await fetch("/api/grievance/update", {
+        method: "POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({ ticket_id: grvActionTicketId, status, admin_remark: remark })
+    });
+    const data = await res.json();
+    btn.disabled = false; btn.textContent = "Save";
+
+    if (res.ok) {
+        document.getElementById("grvActionModal").style.display = "none";
+        loadGrievanceTickets();
+        showToast(data.message || "Updated", "success");
+    } else {
+        alert(data.error || "Failed to update");
+    }
+}
+
+function escGrv(t) {
+    const d = document.createElement("div");
+    d.textContent = t ?? ""; return d.innerHTML;
+}
+
+/* ── Reuse existing showToast if available ── */
+if (typeof showToast === "undefined") {
+    window.showToast = function(msg, type) {
+        alert(msg);
+    };
+}
+</script>
+
+<!-- Grievance Detail Modal -->
+<div id="grvDetailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
+    backdrop-filter:blur(4px);z-index:10000;align-items:center;justify-content:center;padding:1rem;"
+    onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:white;border-radius:16px;width:100%;max-width:620px;max-height:88vh;
+        overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,.25);">
+        <div style="padding:1.25rem 1.5rem;border-bottom:2px solid #f1f5f9;
+                    display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="font-size:1.1rem;font-weight:700;color:#0f172a;">
+                <i class="fas fa-ticket-alt" style="color:#1e5a8e;"></i> Ticket Detail
+            </h3>
+            <button onclick="document.getElementById('grvDetailModal').style.display='none'"
+                style="border:1px solid #e2e8f0;background:#f8fafc;border-radius:8px;
+                       width:34px;height:34px;cursor:pointer;font-size:1rem;color:#475569;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="grvDetailContent" style="padding:1.5rem;"></div>
+    </div>
+</div>
+
+<!-- Grievance Action Modal -->
+<div id="grvActionModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
+    backdrop-filter:blur(4px);z-index:10000;align-items:center;justify-content:center;padding:1rem;"
+    onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:white;border-radius:16px;width:100%;max-width:500px;
+        box-shadow:0 25px 50px rgba(0,0,0,.25);overflow:hidden;">
+        <div style="padding:1.25rem 1.5rem;border-bottom:2px solid #f1f5f9;
+                    background:linear-gradient(135deg,#7c3aed,#6d28d9);">
+            <h3 style="font-size:1.1rem;font-weight:700;color:white;display:flex;align-items:center;gap:.5rem;">
+                <i class="fas fa-edit"></i> Update Ticket —
+                <span id="grvActionTicketLabel" style="font-family:monospace;font-size:1rem;"></span>
+            </h3>
+        </div>
+        <div style="padding:1.5rem;display:flex;flex-direction:column;gap:1rem;">
+            <div>
+                <label style="font-weight:600;font-size:.85rem;color:#334155;display:block;margin-bottom:.5rem;">
+                    Change Status To
+                </label>
+                <select id="grvActionStatus"
+                    style="width:100%;padding:.75rem 1rem;border:2px solid #e2e8f0;border-radius:8px;
+                           font-size:.875rem;color:#0f172a;background:white;">
+                    <option value="Pending">Pending — Under Review</option>
+                    <option value="Closed">Closed — Issue Resolved</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-weight:600;font-size:.85rem;color:#334155;display:block;margin-bottom:.5rem;">
+                    Admin Remark / Resolution Note <span style="color:#ef4444;">*</span>
+                </label>
+                <textarea id="grvActionRemark" rows="4"
+                    placeholder="Describe the action taken or resolution..."
+                    style="width:100%;padding:.75rem 1rem;border:2px solid #e2e8f0;border-radius:8px;
+                           font-family:inherit;font-size:.875rem;resize:vertical;"></textarea>
+            </div>
+        </div>
+        <div style="padding:1rem 1.5rem;border-top:2px solid #f1f5f9;
+                    display:flex;justify-content:flex-end;gap:.75rem;">
+            <button onclick="document.getElementById('grvActionModal').style.display='none'"
+                style="padding:.65rem 1.25rem;border:2px solid #e2e8f0;border-radius:8px;
+                       background:white;color:#475569;font-weight:600;cursor:pointer;">Cancel</button>
+            <button id="grvActionSubmitBtn" onclick="submitGrvAction()"
+                style="padding:.65rem 1.5rem;background:#7c3aed;color:white;border:none;
+                       border-radius:8px;font-weight:700;cursor:pointer;">
+                <i class="fas fa-save"></i> Save
+            </button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
