@@ -40,9 +40,17 @@ def require_admin():
     return None
 
 
-def generate_ticket_no(cursor):
-    """GRV-YYYY-MM-0001 format, resets each month"""
-    prefix = f"GRV-{datetime.now().strftime('%Y-%m')}-"
+def generate_ticket_no(cursor, department=""):
+    """
+    Format: DEP-YYYY-MM-0001
+    DEP = first 3 letters of department, uppercased
+    e.g. if department = "Agriculture"  → AGR-2026-03-0001
+         if department = "Statistics"   → STA-2026-03-0001
+         if department = ""             → GEN-2026-03-0001  (generic fallback)
+    Sequence resets each month per dept prefix.
+    """
+    dept_code = (department[:3].upper() if department else "GEN").ljust(3,"X")
+    prefix    = f"{dept_code}{datetime.now().strftime('%Y%m')}"
     cursor.execute(
         "SELECT COUNT(*) AS cnt FROM tbl_grievance_ticket WHERE ticket_no LIKE %s",
         (f"{prefix}%",)
@@ -92,7 +100,7 @@ def submit_grievance(cursor, conn):
         return jsonify({"error": "Details are required"}), 400
 
     try:
-        ticket_no  = generate_ticket_no(cursor)
+        ticket_no  = generate_ticket_no(cursor, department)
         has_attach = 1 if (attachment and attachment.filename) else 0
 
         cursor.execute("""
@@ -239,6 +247,12 @@ def update_ticket(cursor, conn):
 @grievance_bp.route("/api/grievance/attachment/<int:ticket_id>")
 @with_db_connection
 def download_attachment(cursor, conn, ticket_id):
+    """
+    Returns attachment as inline (for popup preview).
+    Images / PDF are served with Content-Disposition: inline
+    so the browser renders them directly inside the modal.
+    Also returns JSON with base64 data when ?mode=base64
+    """
     err = require_login()
     if err: return err
     try:
@@ -250,12 +264,24 @@ def download_attachment(cursor, conn, ticket_id):
         row = cursor.fetchone()
         if not row:
             return jsonify({"error": "No attachment found"}), 404
-        return send_file(
-            io.BytesIO(row["file_data"]),
-            mimetype=row["mimetype"],
-            as_attachment=True,
-            download_name=row["filename"]
+
+        if request.args.get("mode") == "base64":
+            import base64
+            b64 = base64.b64encode(row["file_data"]).decode("utf-8")
+            return jsonify({
+                "filename": row["filename"],
+                "mimetype": row["mimetype"],
+                "data":     b64
+            })
+
+        # Default: inline (renders in browser popup / iframe)
+        from flask import Response
+        resp = Response(
+            io.BytesIO(row["file_data"]).read(),
+            mimetype=row["mimetype"]
         )
+        resp.headers["Content-Disposition"] = f"inline; filename={row['filename']}"
+        return resp
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

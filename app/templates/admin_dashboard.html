@@ -1651,8 +1651,11 @@ function renderGrvTable() {
         const det = t.details.length > 45 ? t.details.slice(0,45)+"…" : t.details;
 
         const attachBtn = t.has_attachment
-            ? `<a href="/api/grievance/attachment/${t.id}" target="_blank"
-                   style="color:#3b82f6;font-size:.8rem;"><i class="fas fa-paperclip"></i> View</a>`
+            ? `<button onclick="adminViewAttachment(${t.id},'${t.ticket_no}')"
+                   style="background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;
+                          border-radius:6px;padding:.3rem .65rem;font-size:.75rem;
+                          font-weight:600;cursor:pointer;">
+                   <i class="fas fa-paperclip"></i> View</button>`
             : `<span style="color:#9ca3af;font-size:.8rem;">—</span>`;
 
         // Action buttons depending on status
@@ -1724,10 +1727,10 @@ async function viewGrvDetail(ticketNo) {
             <div style="font-weight:600;font-size:.85rem;color:#334155;margin-bottom:.4rem;">Details</div>
             <div style="background:white;border:1.5px solid #e2e8f0;border-radius:8px;padding:.875rem;font-size:.875rem;line-height:1.6;">${escGrv(t.details)}</div>
         </div>
-        ${t.has_attachment ? `<a href="/api/grievance/attachment/${t.id}" target="_blank"
+        ${t.has_attachment ? `<button onclick="adminViewAttachment(${t.id},'${t.ticket_no}')"
             style="display:inline-flex;align-items:center;gap:.5rem;background:#eff6ff;color:#1e40af;
-                   border:1px solid #bfdbfe;border-radius:8px;padding:.5rem 1rem;font-size:.85rem;font-weight:600;text-decoration:none;">
-            <i class="fas fa-paperclip"></i> View Attachment</a>` : ""}
+                   border:1px solid #bfdbfe;border-radius:8px;padding:.5rem 1rem;font-size:.85rem;font-weight:600;cursor:pointer;">
+            <i class="fas fa-eye"></i> View Attachment</button>` : ""}
         ${t.admin_remark ? `<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:.875rem;">
             <div style="font-weight:700;font-size:.8rem;color:#166534;margin-bottom:.4rem;"><i class="fas fa-comment-dots"></i> Admin Response</div>
             <div style="font-size:.875rem;color:#166534;">${escGrv(t.admin_remark)}</div>
@@ -1864,6 +1867,97 @@ if (typeof showToast === "undefined") {
         </div>
     </div>
 </div>
+
+
+<!-- ═══ ADMIN ATTACHMENT VIEWER MODAL ═══ -->
+<div id="adminAttachModal" style="display:none;position:fixed;inset:0;
+    background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
+    z-index:19999;align-items:center;justify-content:center;padding:1rem;"
+    onclick="if(event.target===this)closeAdminAttachModal()">
+    <div style="background:white;border-radius:16px;width:100%;max-width:820px;
+        max-height:90vh;display:flex;flex-direction:column;
+        box-shadow:0 25px 60px rgba(0,0,0,.4);overflow:hidden;">
+        <div style="padding:1rem 1.5rem;background:linear-gradient(135deg,#1e5a8e,#2563eb);
+                    display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:.6rem;color:white;">
+                <i class="fas fa-paperclip"></i>
+                <span style="font-weight:700;font-size:1rem;" id="adminAttachTitle">Attachment</span>
+            </div>
+            <div style="display:flex;gap:.5rem;">
+                <a id="adminAttachDlBtn" href="#" download
+                    style="background:rgba(255,255,255,.2);color:white;border:1px solid rgba(255,255,255,.3);
+                           border-radius:7px;padding:.4rem .85rem;font-size:.8rem;font-weight:600;
+                           text-decoration:none;display:inline-flex;align-items:center;gap:.4rem;">
+                    <i class="fas fa-download"></i> Download
+                </a>
+                <button onclick="closeAdminAttachModal()"
+                    style="background:rgba(255,255,255,.2);color:white;border:1px solid rgba(255,255,255,.3);
+                           border-radius:7px;width:34px;height:34px;cursor:pointer;font-size:1rem;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div id="adminAttachBody" style="flex:1;overflow:auto;display:flex;
+            align-items:center;justify-content:center;background:#f8fafc;min-height:300px;"></div>
+    </div>
+</div>
+
+<script>
+async function adminViewAttachment(ticketId, ticketNo) {
+    const modal = document.getElementById("adminAttachModal");
+    const body  = document.getElementById("adminAttachBody");
+    const title = document.getElementById("adminAttachTitle");
+    const dlBtn = document.getElementById("adminAttachDlBtn");
+
+    modal.style.display = "flex";
+    title.textContent   = `Attachment — ${ticketNo}`;
+    body.innerHTML      = `<div style="text-align:center;color:#64748b;padding:3rem;">
+        <i class="fas fa-spinner fa-spin" style="font-size:2rem;display:block;margin-bottom:.75rem;"></i>
+        Loading...</div>`;
+
+    try {
+        const res  = await fetch(`/api/grievance/attachment/${ticketId}?mode=base64`);
+        const data = await res.json();
+        if (!res.ok || data.error) {
+            body.innerHTML = `<div style="color:#dc2626;padding:2rem;text-align:center;">${data.error||"Failed"}</div>`;
+            return;
+        }
+        const src     = `data:${data.mimetype};base64,${data.data}`;
+        dlBtn.href     = src;
+        dlBtn.download = data.filename;
+
+        if (data.mimetype.startsWith("image/")) {
+            body.innerHTML = `<div style="padding:1rem;text-align:center;">
+                <img src="${src}" style="max-width:100%;max-height:70vh;border-radius:8px;
+                    box-shadow:0 4px 20px rgba(0,0,0,.15);">
+                <div style="margin-top:.75rem;font-size:.8rem;color:#64748b;">${data.filename}</div>
+            </div>`;
+        } else if (data.mimetype === "application/pdf") {
+            body.innerHTML = `<iframe src="${src}" style="width:100%;height:72vh;border:none;"></iframe>`;
+        } else {
+            body.innerHTML = `<div style="text-align:center;padding:3rem;color:#475569;">
+                <i class="fas fa-file" style="font-size:3rem;display:block;margin-bottom:1rem;opacity:.4;"></i>
+                <div style="font-weight:600;">${data.filename}</div>
+                <a href="${src}" download="${data.filename}"
+                   style="display:inline-block;margin-top:1rem;background:#1e5a8e;color:white;
+                          padding:.65rem 1.5rem;border-radius:8px;text-decoration:none;font-weight:600;">
+                    <i class="fas fa-download"></i> Download
+                </a></div>`;
+        }
+    } catch(e) {
+        body.innerHTML = `<div style="color:#dc2626;padding:2rem;">Error: ${e.message}</div>`;
+    }
+}
+
+function closeAdminAttachModal() {
+    document.getElementById("adminAttachModal").style.display = "none";
+    document.getElementById("adminAttachBody").innerHTML = "";
+}
+
+document.addEventListener("keydown", e => {
+    if (e.key === "Escape") closeAdminAttachModal();
+});
+</script>
 
 </body>
 </html>
