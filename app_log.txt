@@ -62,3 +62,17 @@
 2026-03-16 16:16:31,377 - INFO - Requested: GET http://10.65.51.44/api/grievance/my_tickets from 127.0.0.1
 2026-03-16 16:16:32,503 - INFO - Requested: GET http://10.65.51.44/api/grievance/attachment/4?mode=base64 from 127.0.0.1
 2026-03-16 16:16:42,299 - INFO - Requested: GET http://10.65.51.44/api/grievance/ticket/ANI-2026-03-0001 from 127.0.0.1
+2026-03-16 16:19:38,279 - INFO - Requested: GET http://10.65.51.44/grievance from 127.0.0.1
+2026-03-16 16:19:38,287 - INFO - Requested: GET http://10.65.51.44/ from 127.0.0.1
+2026-03-16 16:19:38,303 - INFO - Requested: GET http://10.65.51.44/static/logo_sts.png from 127.0.0.1
+2026-03-16 16:19:50,853 - INFO - Requested: POST http://10.65.51.44/login from 127.0.0.1
+2026-03-16 16:19:50,964 - INFO - Requested: GET http://10.65.51.44/user_dashboard from 127.0.0.1
+2026-03-16 16:19:50,977 - INFO - Requested: GET http://10.65.51.44/static/images/py_logo.jpeg from 127.0.0.1
+2026-03-16 16:19:51,003 - INFO - Requested: GET http://10.65.51.44/api/current_user from 127.0.0.1
+2026-03-16 16:19:51,006 - INFO - Requested: GET http://10.65.51.44/api/transaction_tables from 127.0.0.1
+2026-03-16 16:19:51,020 - INFO - Requested: GET http://10.65.51.44/uploads?department=Animal%20Husbandry%20and%20Animal%20Welfare from 127.0.0.1
+2026-03-16 16:19:52,806 - INFO - Requested: GET http://10.65.51.44/grievance from 127.0.0.1
+2026-03-16 16:19:52,818 - INFO - Requested: GET http://10.65.51.44/static/images/py_logo.jpeg from 127.0.0.1
+2026-03-16 16:19:52,820 - INFO - Requested: GET http://10.65.51.44/api/grievance/types from 127.0.0.1
+2026-03-16 16:19:54,384 - INFO - Requested: GET http://10.65.51.44/api/grievance/my_tickets from 127.0.0.1
+2026-03-16 16:20:01,997 - INFO - Requested: POST http://10.65.51.44/api/grievance/submit from 127.0.0.1
