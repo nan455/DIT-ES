@@ -545,17 +545,50 @@
     <!-- STATISTICS TAB                                 -->
     <!-- ══════════════════════════════════════════════ -->
     <div id="statistics-tab" class="tab-content">
+
+        <!-- ── DATE RANGE FILTER BAR ── -->
+        <!-- <div class="card" style="margin-bottom:1.25rem;padding:1.25rem 1.5rem;">
+            <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+                <span style="font-weight:700;font-size:.95rem;color:var(--gray-900);display:flex;align-items:center;gap:.5rem;">
+                    <i class="fas fa-filter" style="color:var(--primary);"></i> Filter by Date Range
+                </span>
+                <div style="display:flex;align-items:center;gap:.5rem;">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--gray-600);">From</label>
+                    <input type="month" id="statsFromMonth" class="input" style="padding:.5rem .75rem;font-size:.85rem;max-width:160px;"
+                           onchange="applyStatsFilter()">
+                </div>
+                <div style="display:flex;align-items:center;gap:.5rem;">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--gray-600);">To</label>
+                    <input type="month" id="statsToMonth" class="input" style="padding:.5rem .75rem;font-size:.85rem;max-width:160px;"
+                           onchange="applyStatsFilter()">
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="applyStatsFilter()">
+                    <i class="fas fa-search"></i> Apply
+                </button>
+                <button class="btn btn-ghost btn-sm" onclick="clearStatsFilter()">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+                <span id="statsFilterLabel" style="font-size:.78rem;color:var(--gray-600);font-style:italic;"></span>
+                <button class="btn btn-primary btn-sm" onclick="refreshStatistics()" style="margin-left:auto;">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div> -->
+
         <div class="card">
             <div class="card-header">
                 <div class="card-title"><i class="fas fa-chart-pie"></i> Department Submission Statistics</div>
-                <button class="btn btn-primary btn-sm" onclick="refreshStatistics()"><i class="fas fa-sync-alt"></i> Refresh</button>
             </div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.5rem;margin-bottom:2rem;">
+
+            <!-- Stat cards -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;margin-bottom:2rem;">
                 <div class="stat-card stat-success"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-content"><div class="stat-label">Submitted</div><div class="stat-value" id="submittedCount">0</div></div></div>
-                <div class="stat-card stat-warning"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-content"><div class="stat-label">Pending</div><div class="stat-value" id="pendingCount">0</div></div></div>
+                <div class="stat-card stat-warning"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-content"><div class="stat-label">Pending / Not Submitted</div><div class="stat-value" id="pendingCount">0</div></div></div>
                 <div class="stat-card stat-info"><div class="stat-icon"><i class="fas fa-building"></i></div><div class="stat-content"><div class="stat-label">Total Departments</div><div class="stat-value" id="totalDepts">0</div></div></div>
                 <div class="stat-card stat-primary"><div class="stat-icon"><i class="fas fa-percentage"></i></div><div class="stat-content"><div class="stat-label">Completion Rate</div><div class="stat-value" id="completionRate">0%</div></div></div>
             </div>
+
+            <!-- Charts -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem;">
                 <div style="background:white;padding:2rem;border-radius:12px;box-shadow:var(--shadow);">
                     <h4 style="margin-bottom:1.5rem;font-size:1.125rem;font-weight:600;"><i class="fas fa-chart-pie"></i> Submission Overview</h4>
@@ -566,18 +599,142 @@
                     <canvas id="statusBarChart" style="max-height:300px;"></canvas>
                 </div>
             </div>
-            <div class="card" style="box-shadow:var(--shadow);">
-                <div class="card-header" style="border-bottom:2px solid var(--gray-100);padding-bottom:1rem;">
-                    <div class="card-title" style="font-size:1.125rem;"><i class="fas fa-list"></i> Department Status Details</div>
-                    <input id="searchStats" class="input search-input" placeholder="Search departments..." onkeyup="filterStatistics()" style="max-width:300px;">
+
+            <!-- ── SUB-TABS: Dept Details  |  Register-wise ── -->
+            <div style="display:flex;gap:.4rem;background:var(--gray-100);border-radius:10px;padding:4px;width:fit-content;margin-bottom:1.25rem;">
+                <button id="statSubTab1" onclick="switchStatSubTab('dept')"
+                    style="padding:.5rem 1.2rem;border:none;border-radius:7px;font-size:.82rem;font-weight:600;cursor:pointer;background:var(--primary);color:white;transition:all .2s;">
+                    <i class="fas fa-building"></i> Department Details
+                </button>
+                <button id="statSubTab2" onclick="switchStatSubTab('register')"
+                    style="padding:.5rem 1.2rem;border:none;border-radius:7px;font-size:.82rem;font-weight:600;cursor:pointer;background:transparent;color:var(--gray-600);transition:all .2s;">
+                    <i class="fas fa-table"></i> Register-wise Breakdown
+                </button>
+            </div>
+
+            <!-- ── DEPT DETAILS PANEL ── -->
+            <div id="statPanelDept">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;flex-wrap:wrap;gap:.5rem;">
+                    <span style="font-weight:700;font-size:.95rem;color:var(--gray-900);">
+                        <i class="fas fa-list" style="color:var(--primary);"></i> Department Status Details
+                    </span>
+                    <input id="searchStats" class="input search-input" placeholder="Search departments..."
+                           onkeyup="filterStatistics()" style="max-width:260px;padding:.5rem .875rem;font-size:.85rem;">
                 </div>
                 <div class="table-container">
                     <table class="table">
-                        <thead><tr><th>Department</th><th>Status</th><th>Last Upload</th><th>Uploaded By</th><th>Files Count</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Department</th>
+                                <th>Status</th>
+                                <th>Last Upload</th>
+                                <th>Uploaded By</th>
+                                <th>Files</th>
+                                <th>Completion</th>
+                            </tr>
+                        </thead>
                         <tbody id="statsBody"></tbody>
                     </table>
                 </div>
             </div>
+
+            <!-- ── REGISTER-WISE PANEL ── -->
+            <div id="statPanelRegister" style="display:none;">
+
+                <!-- Department dropdown selector -->
+                <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;">
+                    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+                        <div style="display:flex;align-items:center;gap:.6rem;">
+                            <i class="fas fa-building" style="color:var(--primary);font-size:1.1rem;"></i>
+                            <span style="font-weight:700;font-size:.95rem;color:var(--gray-900);">Select Department</span>
+                        </div>
+                        <select id="deptRegisterSelect" class="select"
+                            style="min-width:280px;padding:.6rem 1rem;font-size:.875rem;"
+                            onchange="onDeptRegisterChange()">
+                            <option value="">-- Select a department --</option>
+                        </select>
+                        <button class="btn btn-primary btn-sm" onclick="loadDeptRegisterBreakdown()">
+                            <i class="fas fa-search"></i> View
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary stat cards — shown after dept selected -->
+                <div id="deptRegSummary" style="display:none;margin-bottom:1.5rem;">
+                    <div style="font-weight:700;font-size:1rem;color:var(--gray-900);margin-bottom:.875rem;display:flex;align-items:center;gap:.5rem;">
+                        <i class="fas fa-chart-bar" style="color:var(--primary);"></i>
+                        <span id="deptRegTitle">Department Register Summary</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;">
+                        <div style="background:white;border-radius:10px;padding:1rem 1.25rem;border:1.5px solid #e2e8f0;text-align:center;">
+                            <div style="font-size:.75rem;color:#64748b;font-weight:600;margin-bottom:.3rem;">Total Registers</div>
+                            <div style="font-size:2rem;font-weight:800;color:#1e5a8e;" id="drTotalReg">—</div>
+                        </div>
+                        <div style="background:#d1fae5;border-radius:10px;padding:1rem 1.25rem;border:1.5px solid #6ee7b7;text-align:center;">
+                            <div style="font-size:.75rem;color:#065f46;font-weight:600;margin-bottom:.3rem;">✅ Approved</div>
+                            <div style="font-size:2rem;font-weight:800;color:#065f46;" id="drApproved">—</div>
+                        </div>
+                        <div style="background:#fef3c7;border-radius:10px;padding:1rem 1.25rem;border:1.5px solid #fcd34d;text-align:center;">
+                            <div style="font-size:.75rem;color:#92400e;font-weight:600;margin-bottom:.3rem;">⏳ Pending</div>
+                            <div style="font-size:2rem;font-weight:800;color:#92400e;" id="drPending">—</div>
+                        </div>
+                        <div style="background:#fee2e2;border-radius:10px;padding:1rem 1.25rem;border:1.5px solid #fca5a5;text-align:center;">
+                            <div style="font-size:.75rem;color:#991b1b;font-weight:600;margin-bottom:.3rem;">❌ Rejected</div>
+                            <div style="font-size:2rem;font-weight:800;color:#991b1b;" id="drRejected">—</div>
+                        </div>
+                    </div>
+
+                    <!-- Overall progress bar -->
+                    <div style="margin-top:1rem;background:white;border-radius:10px;padding:1rem 1.25rem;border:1.5px solid #e2e8f0;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
+                            <span style="font-size:.82rem;font-weight:600;color:#334155;">Overall Completion</span>
+                            <span style="font-size:.9rem;font-weight:800;color:#1e5a8e;" id="drCompletionPct">0%</span>
+                        </div>
+                        <div style="background:#e2e8f0;border-radius:999px;height:10px;">
+                            <div id="drProgressBar" style="width:0%;background:linear-gradient(90deg,#10b981,#1e5a8e);border-radius:999px;height:10px;transition:width .6s ease;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Register detail table -->
+                <div id="deptRegTableWrap" style="display:none;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem;">
+                        <span style="font-weight:700;font-size:.9rem;color:var(--gray-900);">
+                            <i class="fas fa-list" style="color:var(--primary);"></i> Register Details
+                        </span>
+                        <input id="searchRegister" class="input search-input" placeholder="Search register..."
+                               onkeyup="filterRegisterTable()" style="max-width:240px;padding:.45rem .875rem;font-size:.82rem;">
+                    </div>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Register Name</th>
+                                    <th>Table</th>
+                                    <th>Uploads</th>
+                                    <th>Status</th>
+                                    <th>Last Uploaded</th>
+                                    <th>Uploaded By</th>
+                                    <th>Completion</th>
+                                </tr>
+                            </thead>
+                            <tbody id="registerBody">
+                                <tr><td colspan="8" style="text-align:center;padding:3rem;color:#9ca3af;">Select a department above to view</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Empty / prompt state -->
+                <div id="deptRegEmpty" style="text-align:center;padding:3rem;color:#9ca3af;">
+                    <i class="fas fa-building" style="font-size:2.5rem;display:block;margin-bottom:1rem;opacity:.25;"></i>
+                    <div style="font-size:.95rem;font-weight:600;margin-bottom:.35rem;">Select a Department</div>
+                    <div style="font-size:.82rem;">Choose a department from the dropdown above to see its register completion status.</div>
+                </div>
+
+            </div>
+
         </div>
     </div>
 
@@ -1451,20 +1608,77 @@ async function savePermissions() {
 // ═══════════════════════════════════════════════════════════
 // STATISTICS
 // ═══════════════════════════════════════════════════════════
+// ── Statistics date filter state ──
+let statsFromMonth = '';
+let statsToMonth   = '';
+let statSubTab     = 'dept';   // 'dept' | 'register'
+let registerCache  = [];       // raw register-wise data
+
+function applyStatsFilter() {
+    statsFromMonth = document.getElementById('statsFromMonth')?.value || '';
+    statsToMonth   = document.getElementById('statsToMonth')?.value   || '';
+    const lbl = document.getElementById('statsFilterLabel');
+    if (statsFromMonth || statsToMonth) {
+        lbl.textContent = `Showing: ${statsFromMonth || '—'} to ${statsToMonth || '—'}`;
+    } else {
+        lbl.textContent = '';
+    }
+    loadStatistics();
+}
+
+function clearStatsFilter() {
+    document.getElementById('statsFromMonth').value = '';
+    document.getElementById('statsToMonth').value   = '';
+    statsFromMonth = ''; statsToMonth = '';
+    document.getElementById('statsFilterLabel').textContent = '';
+    loadStatistics();
+}
+
+// ── Sub-tab switcher ──
+function switchStatSubTab(tab) {
+    statSubTab = tab;
+    const btn1 = document.getElementById('statSubTab1');
+    const btn2 = document.getElementById('statSubTab2');
+    const p1   = document.getElementById('statPanelDept');
+    const p2   = document.getElementById('statPanelRegister');
+    if (tab === 'dept') {
+        btn1.style.background = 'var(--primary)'; btn1.style.color = 'white';
+        btn2.style.background = 'transparent';    btn2.style.color = 'var(--gray-600)';
+        p1.style.display = ''; p2.style.display = 'none';
+    } else {
+        btn2.style.background = 'var(--primary)'; btn2.style.color = 'white';
+        btn1.style.background = 'transparent';    btn1.style.color = 'var(--gray-600)';
+        p2.style.display = ''; p1.style.display = 'none';
+        loadRegisterBreakdown();
+    }
+}
+
 async function loadStatistics() {
     try {
-        const stats = await apiGet('/api/statistics/departments') || {};
+        let url = '/api/statistics/departments';
+        const params = [];
+        if (statsFromMonth) params.push('from=' + encodeURIComponent(statsFromMonth));
+        if (statsToMonth)   params.push('to='   + encodeURIComponent(statsToMonth));
+        if (params.length)  url += '?' + params.join('&');
+
+        const stats = await apiGet(url) || {};
         const submitted    = stats.submitted    || [];
         const pending      = stats.pending      || [];
         const notSubmitted = stats.not_submitted|| [];
         const total = submitted.length + pending.length + notSubmitted.length;
+
         document.getElementById('submittedCount').textContent = submitted.length;
         document.getElementById('pendingCount').textContent   = pending.length + notSubmitted.length;
         document.getElementById('totalDepts').textContent     = total;
-        document.getElementById('completionRate').textContent = total>0 ? Math.round((submitted.length/total)*100)+'%' : '0%';
+        document.getElementById('completionRate').textContent = total > 0 ? Math.round((submitted.length / total) * 100) + '%' : '0%';
+
         renderPieChart(submitted.length, pending.length, notSubmitted.length);
         renderBarChart(submitted.length, pending.length, notSubmitted.length);
         renderDepartmentDetails(stats);
+
+        // Reload register breakdown if that sub-tab is active
+        if (statSubTab === 'register') loadRegisterBreakdown();
+
     } catch(e) { console.error('loadStatistics', e); }
 }
 async function refreshStatistics() { await loadStatistics(); showToast('Statistics refreshed'); }
@@ -1479,25 +1693,188 @@ function renderBarChart(s, p, n) {
     if (barChart) barChart.destroy();
     barChart = new Chart(ctx, { type:'bar', data:{ labels:['Submitted','Pending','Not Submitted'], datasets:[{ label:'Departments', data:[s,p,n], backgroundColor:['rgba(16,185,129,0.8)','rgba(245,158,11,0.8)','rgba(239,68,68,0.8)'], borderColor:['#10b981','#f59e0b','#ef4444'], borderWidth:2, borderRadius:8 }] }, options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1 } } } } });
 }
+
 function renderDepartmentDetails(stats) {
     const tbody = document.getElementById('statsBody'); if (!tbody) return;
     const all = [];
-    (stats.submitted||[]).forEach(d => all.push({ ...d, status:'submitted' }));
-    (stats.pending||[]).forEach(d => all.push({ ...d, status:'pending' }));
-    (stats.not_submitted||[]).forEach(d => all.push({ department:d, status:'not_submitted', last_upload:'-', updated_by:'-', files_count:0 }));
-    if (!all.length) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:3rem;color:#9ca3af;">No data</td></tr>'; return; }
+    (stats.submitted    || []).forEach(d => all.push({ ...d, status:'submitted' }));
+    (stats.pending      || []).forEach(d => all.push({ ...d, status:'pending' }));
+    (stats.not_submitted|| []).forEach(d => all.push({ department:d, status:'not_submitted', last_upload:'-', updated_by:'-', files_count:0 }));
+    if (!all.length) { tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:3rem;color:#9ca3af;">No data</td></tr>'; return; }
+
+    const total = all.length;
     tbody.innerHTML = all.map(d => {
         const badge = d.status==='submitted'
             ? '<span class="status-badge status-submitted"><i class="fas fa-check-circle"></i> Submitted</span>'
             : d.status==='pending'
             ? '<span class="status-badge status-pending"><i class="fas fa-clock"></i> Pending</span>'
             : '<span class="status-badge status-not-submitted"><i class="fas fa-times-circle"></i> Not Submitted</span>';
-        return `<tr><td><strong>${escapeHtml(d.department)}</strong></td><td>${badge}</td><td>${formatDate(d.last_upload)}</td><td>${escapeHtml(d.updated_by)}</td><td><span class="badge badge-user">${d.files_count} files</span></td></tr>`;
+
+        // Inline progress bar for completion
+        const pct   = d.status === 'submitted' ? 100 : d.status === 'pending' ? 50 : 0;
+        const pColor= pct === 100 ? '#10b981' : pct === 50 ? '#f59e0b' : '#ef4444';
+        const bar   = `<div style="display:flex;align-items:center;gap:.5rem;">
+            <div style="flex:1;background:#e2e8f0;border-radius:999px;height:6px;min-width:60px;">
+                <div style="width:${pct}%;background:${pColor};border-radius:999px;height:6px;transition:width .4s;"></div>
+            </div>
+            <span style="font-size:.72rem;font-weight:700;color:${pColor};min-width:28px;">${pct}%</span>
+        </div>`;
+
+        // Row tint
+        const rowBg = d.status==='submitted' ? 'background:#f0fdf4;' : d.status==='pending' ? 'background:#fffbeb;' : 'background:#fff1f2;';
+        return `<tr style="${rowBg}"><td><strong>${escapeHtml(d.department)}</strong></td><td>${badge}</td><td style="font-size:.8rem;">${formatDate(d.last_upload)}</td><td style="font-size:.8rem;">${escapeHtml(d.updated_by||'-')}</td><td><span class="badge badge-user">${d.files_count||0} files</span></td><td style="min-width:120px;">${bar}</td></tr>`;
     }).join('');
 }
 function filterStatistics() {
     const q = document.getElementById('searchStats')?.value.toLowerCase()||'';
     document.querySelectorAll('#statsBody tr').forEach(tr => { tr.style.display = tr.innerText.toLowerCase().includes(q)?'':'none'; });
+}
+
+// ══════════════════════════════════════════════
+// REGISTER-WISE BREAKDOWN
+// ══════════════════════════════════════════════
+// ── Department register breakdown state ──
+let deptRegCache = [];   // full list for selected dept
+
+// When sub-tab opens: populate department dropdown
+async function loadRegisterBreakdown() {
+    // Populate department dropdown from existing departments list
+    const sel = document.getElementById('deptRegisterSelect');
+    if (sel.options.length <= 1) {
+        // Fill from departments already loaded, or fetch
+        const src = departments.length ? departments : await apiGet('/api/departments');
+        sel.innerHTML = '<option value="">-- Select a department --</option>';
+        src.forEach(d => {
+            const name = typeof d === 'string' ? d : (d.name || d.department || d);
+            const opt  = document.createElement('option');
+            opt.value  = name; opt.textContent = name;
+            sel.appendChild(opt);
+        });
+    }
+    // Reset to prompt state
+    document.getElementById('deptRegSummary').style.display    = 'none';
+    document.getElementById('deptRegTableWrap').style.display  = 'none';
+    document.getElementById('deptRegEmpty').style.display      = '';
+}
+
+function onDeptRegisterChange() {
+    const dept = document.getElementById('deptRegisterSelect').value;
+    if (dept) loadDeptRegisterBreakdown();
+}
+
+async function loadDeptRegisterBreakdown() {
+    const dept = document.getElementById('deptRegisterSelect').value;
+    if (!dept) { showToast('Please select a department', 'warn'); return; }
+
+    // Show loading in table
+    document.getElementById('deptRegEmpty').style.display     = 'none';
+    document.getElementById('deptRegSummary').style.display   = 'none';
+    document.getElementById('deptRegTableWrap').style.display = '';
+    const tbody = document.getElementById('registerBody');
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:#64748b;">
+        <i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>`;
+
+    try {
+        let url = '/api/statistics/dept_register_breakdown?department=' + encodeURIComponent(dept);
+        if (statsFromMonth) url += '&from=' + encodeURIComponent(statsFromMonth);
+        if (statsToMonth)   url += '&to='   + encodeURIComponent(statsToMonth);
+
+        const data = await apiGet(url);
+        deptRegCache = Array.isArray(data.registers) ? data.registers : [];
+
+        // Update summary cards
+        const total    = deptRegCache.length;
+        const approved = deptRegCache.filter(r => r.status === 'approved').length;
+        const rejected = deptRegCache.filter(r => r.status === 'rejected').length;
+        const pending  = deptRegCache.filter(r => r.status === 'pending' || r.status === 'not_uploaded').length;
+        const pct      = total > 0 ? Math.round((approved / total) * 100) : 0;
+
+        document.getElementById('deptRegTitle').textContent       = `${dept} — Register Summary`;
+        document.getElementById('drTotalReg').textContent         = total;
+        document.getElementById('drApproved').textContent         = approved;
+        document.getElementById('drPending').textContent          = pending;
+        document.getElementById('drRejected').textContent         = rejected;
+        document.getElementById('drCompletionPct').textContent    = pct + '%';
+        document.getElementById('drProgressBar').style.width      = pct + '%';
+        document.getElementById('drProgressBar').style.background =
+            pct === 100 ? '#10b981' : pct >= 50 ? 'linear-gradient(90deg,#f59e0b,#10b981)' : 'linear-gradient(90deg,#ef4444,#f59e0b)';
+
+        document.getElementById('deptRegSummary').style.display   = '';
+        document.getElementById('deptRegTableWrap').style.display = '';
+
+        renderDeptRegisterTable(deptRegCache);
+
+    } catch(e) {
+        console.error('loadDeptRegisterBreakdown', e);
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:#dc2626;">Failed to load</td></tr>`;
+    }
+}
+
+function renderDeptRegisterTable(rows) {
+    const tbody = document.getElementById('registerBody');
+    if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:3rem;color:#9ca3af;">
+            <i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:.75rem;opacity:.3;"></i>
+            No registers found</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = rows.map((r, idx) => {
+        // Row background by status
+        const rowBg = r.status === 'approved'
+            ? 'background:#f0fdf4;'
+            : r.status === 'rejected'
+            ? 'background:#fff1f2;'
+            : r.status === 'pending'
+            ? 'background:#fffbeb;'
+            : '';   // not uploaded = white
+
+        // Status badge
+        let badge = '';
+        if (r.status === 'approved') {
+            badge = `<span style="background:#d1fae5;color:#065f46;padding:.3rem .8rem;border-radius:999px;font-size:.75rem;font-weight:700;display:inline-flex;align-items:center;gap:.35rem;"><i class="fas fa-check-circle"></i> Approved</span>`;
+        } else if (r.status === 'rejected') {
+            badge = `<span style="background:#fee2e2;color:#991b1b;padding:.3rem .8rem;border-radius:999px;font-size:.75rem;font-weight:700;display:inline-flex;align-items:center;gap:.35rem;"><i class="fas fa-times-circle"></i> Rejected</span>`;
+        } else if (r.status === 'pending') {
+            badge = `<span style="background:#fef3c7;color:#92400e;padding:.3rem .8rem;border-radius:999px;font-size:.75rem;font-weight:700;display:inline-flex;align-items:center;gap:.35rem;"><i class="fas fa-clock"></i> Pending</span>`;
+        } else {
+            badge = `<span style="background:#f1f5f9;color:#64748b;padding:.3rem .8rem;border-radius:999px;font-size:.75rem;font-weight:700;display:inline-flex;align-items:center;gap:.35rem;"><i class="fas fa-minus-circle"></i> Not Uploaded</span>`;
+        }
+
+        // Mini progress bar (upload count vs expected 1)
+        const uploaded = r.upload_count > 0;
+        const bar = `<div style="display:flex;align-items:center;gap:.5rem;">
+            <div style="flex:1;background:#e2e8f0;border-radius:999px;height:6px;min-width:60px;">
+                <div style="width:${uploaded ? 100 : 0}%;background:${r.status==='approved'?'#10b981':r.status==='rejected'?'#ef4444':'#f59e0b'};border-radius:999px;height:6px;"></div>
+            </div>
+            <span style="font-size:.7rem;font-weight:700;color:#64748b;">${uploaded ? '100%' : '0%'}</span>
+        </div>`;
+
+        return `<tr style="${rowBg}">
+            <td style="font-weight:700;color:#94a3b8;font-size:.8rem;">${idx + 1}</td>
+            <td>
+                <div style="font-weight:700;font-size:.875rem;color:var(--gray-900);">${escapeHtml(r.report_name)}</div>
+            </td>
+            <td><span style="font-size:.72rem;color:#94a3b8;font-family:monospace;">${escapeHtml(r.target_table_name)}</span></td>
+            <td style="text-align:center;">
+                <span style="font-weight:700;font-size:.9rem;color:var(--primary);">${r.upload_count}</span>
+            </td>
+            <td>${badge}</td>
+            <td style="font-size:.8rem;color:#64748b;">${r.last_uploaded ? formatDate(r.last_uploaded) : '—'}</td>
+            <td style="font-size:.82rem;">${escapeHtml(r.uploaded_by || '—')}</td>
+            <td style="min-width:110px;">${bar}</td>
+        </tr>`;
+    }).join('');
+}
+
+function filterRegisterTable() {
+    const q = (document.getElementById('searchRegister')?.value || '').toLowerCase();
+    const filtered = q
+        ? deptRegCache.filter(r =>
+            (r.report_name||'').toLowerCase().includes(q) ||
+            (r.target_table_name||'').toLowerCase().includes(q))
+        : deptRegCache;
+    renderDeptRegisterTable(filtered);
 }
 
 // ═══════════════════════════════════════════════════════════
