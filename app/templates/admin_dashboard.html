@@ -274,11 +274,60 @@
         }
 
         .perm-grid {
-            display: grid; grid-template-columns: 200px repeat(3, 1fr);
-            gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--gray-200); align-items: center;
+            display: grid;
+            grid-template-columns: 1fr repeat(3, 100px);
+            gap: .5rem;
+            padding: .75rem 1rem;
+            border-bottom: 1px solid var(--gray-200);
+            align-items: center;
+            transition: background .15s;
         }
         .perm-grid:hover { background: var(--gray-50); }
-        .perm-label { font-weight: 600; color: var(--gray-900); }
+        .perm-label { font-weight: 600; color: var(--gray-900); font-size: .875rem; }
+        .perm-label small { display:block; font-size:.72rem; font-weight:400; color:var(--gray-600); margin-top:.15rem; }
+
+        /* Custom perm toggles */
+        .perm-toggle-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .perm-toggle {
+            position: relative;
+            width: 44px; height: 24px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .perm-toggle input { display: none; }
+        .perm-toggle-track {
+            width: 44px; height: 24px;
+            border-radius: 999px;
+            background: #e2e8f0;
+            transition: background .2s;
+            border: 1.5px solid #cbd5e1;
+        }
+        .perm-toggle input:checked ~ .perm-toggle-track { background: var(--success); border-color: #059669; }
+        .perm-toggle-thumb {
+            position: absolute;
+            left: 3px;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,.2);
+            transition: transform .2s;
+            pointer-events: none;
+        }
+        .perm-toggle input:checked ~ .perm-toggle-thumb { transform: translateX(20px); }
+
+        /* View toggle — blue when on */
+        .perm-toggle.perm-view input:checked ~ .perm-toggle-track { background: #3b82f6; border-color: #2563eb; }
+        /* Edit toggle — amber when on */
+        .perm-toggle.perm-edit input:checked ~ .perm-toggle-track { background: #f59e0b; border-color: #d97706; }
+        /* Download toggle — green when on */
+        .perm-toggle.perm-download input:checked ~ .perm-toggle-track { background: #10b981; border-color: #059669; }
+
         .checkbox-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; }
         .checkbox { width: 1.25rem; height: 1.25rem; cursor: pointer; accent-color: var(--primary); }
 
@@ -547,7 +596,7 @@
     <div id="statistics-tab" class="tab-content">
 
         <!-- ── DATE RANGE FILTER BAR ── -->
-        <!-- <div class="card" style="margin-bottom:1.25rem;padding:1.25rem 1.5rem;">
+        <div class="card" style="margin-bottom:1.25rem;padding:1.25rem 1.5rem;">
             <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
                 <span style="font-weight:700;font-size:.95rem;color:var(--gray-900);display:flex;align-items:center;gap:.5rem;">
                     <i class="fas fa-filter" style="color:var(--primary);"></i> Filter by Date Range
@@ -573,7 +622,7 @@
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
             </div>
-        </div> -->
+        </div>
 
         <div class="card">
             <div class="card-header">
@@ -932,16 +981,76 @@
 </div>
 
 <!-- Permission Modal -->
-<div id="permModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title">Manage Permissions for <span id="permUserName"></span></h3>
-            <div class="showToast-info"><i class="fas fa-info-circle"></i><span>Core permissions are handled by user roles. Use these for advanced overrides.</span></div>
+<div id="permModal" class="modal" onclick="if(event.target===this)closePermModal()">
+    <div class="modal-content" style="max-width:780px;">
+        <div class="modal-header" style="flex-direction:column;align-items:flex-start;gap:.75rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+                <h3 class="modal-title" style="display:flex;align-items:center;gap:.6rem;">
+                    <i class="fas fa-lock" style="color:var(--primary);font-size:1.1rem;"></i>
+                    Permissions — <span id="permUserName" style="color:var(--primary);"></span>
+                </h3>
+                <button onclick="closePermModal()" style="border:1px solid var(--gray-200);background:var(--gray-50);
+                    border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:1rem;color:var(--gray-600);">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Permission legend -->
+            <div style="display:flex;gap:.75rem;flex-wrap:wrap;width:100%;">
+                <div style="flex:1;min-width:180px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:.625rem .875rem;display:flex;gap:.6rem;align-items:flex-start;">
+                    <i class="fas fa-eye" style="color:#1e40af;margin-top:.15rem;font-size:.9rem;"></i>
+                    <div>
+                        <div style="font-size:.78rem;font-weight:700;color:#1e40af;">View Only</div>
+                        <div style="font-size:.72rem;color:#3b82f6;line-height:1.4;">Can only view uploaded data. Cannot edit, delete or download.</div>
+                    </div>
+                </div>
+                <div style="flex:1;min-width:180px;background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:.625rem .875rem;display:flex;gap:.6rem;align-items:flex-start;">
+                    <i class="fas fa-edit" style="color:#92400e;margin-top:.15rem;font-size:.9rem;"></i>
+                    <div>
+                        <div style="font-size:.78rem;font-weight:700;color:#92400e;">Edit (Full Access)</div>
+                        <div style="font-size:.72rem;color:#b45309;line-height:1.4;">Can view, edit, delete rows and download data.</div>
+                    </div>
+                </div>
+                <div style="flex:1;min-width:180px;background:#d1fae5;border:1px solid #6ee7b7;border-radius:8px;padding:.625rem .875rem;display:flex;gap:.6rem;align-items:flex-start;">
+                    <i class="fas fa-download" style="color:#065f46;margin-top:.15rem;font-size:.9rem;"></i>
+                    <div>
+                        <div style="font-size:.78rem;font-weight:700;color:#065f46;">Download Only</div>
+                        <div style="font-size:.72rem;color:#047857;line-height:1.4;">Can only download the data as Excel. No edit or delete access.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current permissions summary banner -->
+            <div id="permSummaryBanner" style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;
+                border-radius:8px;padding:.625rem 1rem;font-size:.8rem;color:#475569;display:none;">
+                <strong style="color:#0f172a;"><i class="fas fa-shield-alt" style="color:var(--primary);"></i>
+                Current Privileges:</strong>
+                <span id="permSummaryText"></span>
+            </div>
         </div>
-        <div id="permList"></div>
+
+        <!-- Table header -->
+        <div style="display:grid;grid-template-columns:1fr repeat(3,100px);gap:.5rem;
+            padding:.625rem 1rem;background:var(--dark);border-radius:8px;margin-bottom:.5rem;">
+            <div style="font-size:.78rem;font-weight:700;color:white;">Register / Department</div>
+            <div style="font-size:.78rem;font-weight:700;color:#93c5fd;text-align:center;">
+                <i class="fas fa-eye"></i> View
+            </div>
+            <div style="font-size:.78rem;font-weight:700;color:#fde68a;text-align:center;">
+                <i class="fas fa-edit"></i> Edit
+            </div>
+            <div style="font-size:.78rem;font-weight:700;color:#6ee7b7;text-align:center;">
+                <i class="fas fa-download"></i> Download
+            </div>
+        </div>
+
+        <div id="permList" style="max-height:380px;overflow-y:auto;border:1px solid var(--gray-200);border-radius:8px;"></div>
+
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closePermModal()">Cancel</button>
-            <button class="btn btn-primary" onclick="savePermissions()"><i class="fas fa-save"></i> Save Permissions</button>
+            <button class="btn btn-primary" onclick="savePermissions()">
+                <i class="fas fa-save"></i> Save Permissions
+            </button>
         </div>
     </div>
 </div>
@@ -1572,36 +1681,184 @@ function filterErrorLogs() {
 async function openPermissionModal(userId, username) {
     currentEditingUserId = userId;
     document.getElementById('permUserName').innerText = username;
-    try { const r = await fetch(`/permissions/${userId}`); currentEditingUserPerms = await r.json(); } catch(e) { currentEditingUserPerms = {}; }
+
+    try {
+        const r = await fetch(`/permissions/${userId}`);
+        currentEditingUserPerms = await r.json();
+    } catch(e) { currentEditingUserPerms = {}; }
+
     const container = document.getElementById('permList');
     container.innerHTML = '';
+
     const deptList = ['GLOBAL', ...departments].filter((v,i,a) => a.indexOf(v)===i);
+
     deptList.forEach(dep => {
-        const perms = currentEditingUserPerms[dep]||{ view:false, edit:false, download:false };
-        const row = document.createElement('div'); row.className = 'perm-grid';
+        const p   = currentEditingUserPerms[dep] || { view:false, edit:false, download:false };
+        const row = document.createElement('div');
+        row.className = 'perm-grid';
         row.innerHTML = `
-            <div class="perm-label">${escapeHtml(dep)}</div>
-            <label class="checkbox-label"><input type="checkbox" class="checkbox" data-dept="${escapeHtml(dep)}" data-key="view" ${perms.view?'checked':''}/> View</label>
-            <label class="checkbox-label"><input type="checkbox" class="checkbox" data-dept="${escapeHtml(dep)}" data-key="edit" ${perms.edit?'checked':''}/> Edit</label>
-            <label class="checkbox-label"><input type="checkbox" class="checkbox" data-dept="${escapeHtml(dep)}" data-key="download" ${perms.download?'checked':''}/> Download</label>`;
+            <div class="perm-label">
+                ${escapeHtml(dep)}
+                <small>${dep === 'GLOBAL' ? 'Applies to all departments not listed below' : 'Department-specific override'}</small>
+            </div>
+
+            <!-- VIEW toggle -->
+            <div class="perm-toggle-wrap">
+                <label class="perm-toggle perm-view" title="View Only — user can view data but not edit or delete">
+                    <input type="checkbox" class="checkbox" data-dept="${escapeHtml(dep)}" data-key="view"
+                        ${p.view ? 'checked' : ''} onchange="onPermChange(this,'${escapeHtml(dep)}')">
+                    <div class="perm-toggle-track"></div>
+                    <div class="perm-toggle-thumb"></div>
+                </label>
+            </div>
+
+            <!-- EDIT toggle -->
+            <div class="perm-toggle-wrap">
+                <label class="perm-toggle perm-edit" title="Edit — includes view + edit + delete + download">
+                    <input type="checkbox" class="checkbox" data-dept="${escapeHtml(dep)}" data-key="edit"
+                        ${p.edit ? 'checked' : ''} onchange="onPermChange(this,'${escapeHtml(dep)}')">
+                    <div class="perm-toggle-track"></div>
+                    <div class="perm-toggle-thumb"></div>
+                </label>
+            </div>
+
+            <!-- DOWNLOAD toggle -->
+            <div class="perm-toggle-wrap">
+                <label class="perm-toggle perm-download" title="Download Only — user can only download Excel">
+                    <input type="checkbox" class="checkbox" data-dept="${escapeHtml(dep)}" data-key="download"
+                        ${p.download ? 'checked' : ''} onchange="onPermChange(this,'${escapeHtml(dep)}')">
+                    <div class="perm-toggle-track"></div>
+                    <div class="perm-toggle-thumb"></div>
+                </label>
+            </div>`;
         container.appendChild(row);
     });
+
+    updatePermSummary();
     document.getElementById('permModal').classList.add('active');
 }
-function closePermModal() { document.getElementById('permModal').classList.remove('active'); currentEditingUserId=null; currentEditingUserPerms={}; }
+
+// Show inline tooltip-style popup when a toggle is changed
+function onPermChange(checkbox, dept) {
+    const key     = checkbox.getAttribute('data-key');
+    const checked = checkbox.checked;
+
+    // ── Rule: Edit = superset, auto-tick view & download when edit is on ──
+    if (key === 'edit' && checked) {
+        // Enable view and download automatically when edit is granted
+        const row  = checkbox.closest('.perm-grid');
+        const view = row.querySelector('[data-key="view"]');
+        const dl   = row.querySelector('[data-key="download"]');
+        if (view) view.checked = true;
+        if (dl)   dl.checked   = true;
+    }
+    if (key === 'view' && !checked) {
+        // If view is removed, remove edit too (edit implies view)
+        const row  = checkbox.closest('.perm-grid');
+        const edit = row.querySelector('[data-key="edit"]');
+        if (edit) edit.checked = false;
+    }
+    if (key === 'download' && !checked) {
+        // If download is removed, remove edit too (edit implies download)
+        const row  = checkbox.closest('.perm-grid');
+        const edit = row.querySelector('[data-key="edit"]');
+        if (edit) edit.checked = false;
+    }
+
+    // Show brief tooltip popup near the toggle
+    showPermTooltip(checkbox, key, checked, dept);
+    updatePermSummary();
+}
+
+function showPermTooltip(el, key, isGranted, dept) {
+    document.querySelectorAll('.perm-tooltip').forEach(t => t.remove());
+
+    const messages = {
+        view:     isGranted ? '👁 View granted — user can view data only' : '👁 View removed',
+        edit:     isGranted ? '✏️ Edit granted — includes view + edit + delete + download'
+                            : '✏️ Edit removed',
+        download: isGranted ? '⬇️ Download granted — user can export to Excel'
+                            : '⬇️ Download removed'
+    };
+
+    const colors = {
+        view:     isGranted ? '#dbeafe|#1e40af' : '#fee2e2|#991b1b',
+        edit:     isGranted ? '#fef3c7|#92400e' : '#fee2e2|#991b1b',
+        download: isGranted ? '#d1fae5|#065f46' : '#fee2e2|#991b1b'
+    };
+
+    const [bg, fg] = colors[key].split('|');
+    const tip = document.createElement('div');
+    tip.className = 'perm-tooltip';
+    tip.style.cssText = `
+        position:fixed;z-index:99999;
+        background:${bg};color:${fg};border:1.5px solid ${fg}40;
+        border-radius:8px;padding:.5rem .875rem;font-size:.78rem;font-weight:600;
+        box-shadow:0 4px 12px rgba(0,0,0,.15);pointer-events:none;
+        animation:fadeIn .2s ease;max-width:260px;line-height:1.4;
+    `;
+    tip.textContent = messages[key] || '';
+
+    const rect = el.getBoundingClientRect();
+    tip.style.top  = (rect.top - 8) + 'px';
+    tip.style.left = (rect.right + 10) + 'px';
+
+    document.body.appendChild(tip);
+    setTimeout(() => tip.remove(), 2500);
+}
+
+function updatePermSummary() {
+    // Build a human-readable summary of all set permissions
+    const rows = document.getElementById('permList').querySelectorAll('.perm-grid');
+    const parts = [];
+    rows.forEach(row => {
+        const dept = row.querySelector('[data-dept]')?.getAttribute('data-dept') || '';
+        const view = !!row.querySelector('[data-key="view"]')?.checked;
+        const edit = !!row.querySelector('[data-key="edit"]')?.checked;
+        const dl   = !!row.querySelector('[data-key="download"]')?.checked;
+
+        if (!view && !edit && !dl) return;
+
+        const perms = [];
+        if (edit)     perms.push('Edit');
+        else if (view) perms.push('View');
+        if (dl && !edit) perms.push('Download');
+
+        parts.push(`<strong>${dept}</strong>: ${perms.join(' + ')}`);
+    });
+
+    const banner = document.getElementById('permSummaryBanner');
+    const text   = document.getElementById('permSummaryText');
+
+    if (parts.length) {
+        banner.style.display = '';
+        text.innerHTML = ' ' + parts.join(' &nbsp;|&nbsp; ');
+    } else {
+        banner.style.display = 'none';
+    }
+}
+
+function closePermModal() {
+    document.getElementById('permModal').classList.remove('active');
+    document.querySelectorAll('.perm-tooltip').forEach(t => t.remove());
+    currentEditingUserId    = null;
+    currentEditingUserPerms = {};
+}
+
 async function savePermissions() {
     if (!currentEditingUserId) return;
-    const rows = document.getElementById('permList').querySelectorAll('.perm-grid');
+    const rows    = document.getElementById('permList').querySelectorAll('.perm-grid');
     const payload = {};
     rows.forEach(r => {
         const dept = r.querySelector('[data-dept]')?.getAttribute('data-dept');
         const view = !!r.querySelector('[data-key="view"]')?.checked;
         const edit = !!r.querySelector('[data-key="edit"]')?.checked;
         const dl   = !!r.querySelector('[data-key="download"]')?.checked;
-        if (view||edit||dl) payload[dept] = { view, edit, download:dl };
+        if (view || edit || dl) payload[dept] = { view, edit, download: dl };
     });
-    const res = await apiPost('/permissions/update', { user_id:currentEditingUserId, permissions:payload });
-    showToast(res.message||'Permissions saved');
+    const res = await apiPost('/permissions/update', { user_id: currentEditingUserId, permissions: payload });
+    if (res.error) { showToast('Error: ' + res.error, 'error'); return; }
+    showToast(res.message || 'Permissions saved successfully', 'success');
     closePermModal();
 }
 

@@ -680,7 +680,7 @@
 
     const HIDE_ALWAYS = [
         "created_by","created_date","updated_by","updated_date",
-        "status_","upload_id"   // hide remark col from main table
+        "status_","upload_id","rejection_remark"   // hide remark col from main table
     ];
 
     const urlParams    = new URLSearchParams(window.location.search);
@@ -795,9 +795,6 @@
                     rowRemarks[String(r.id)] = r.remark || "";
                 });
             }
-            else {
-                console.warn("No row remarks found in response");
-            }
         } catch (e) {
             console.warn("Could not load row remarks:", e);
         }
@@ -855,25 +852,29 @@
        ═══════════════════════════════════════════════ */
     async function bulkApprove(status) {
         if (!canApproveReject) return;
+
         const rows = document.querySelectorAll("#excelTable tbody tr");
+        let rowCount = 0;
         for (const tr of rows) {
             const pk = tr.dataset.pk;
             if (!pk) continue;
+            rowCount++;
             await updateApproval(pk, status);
             const acceptCb = tr.querySelector(".approve-accept");
             const rejectCb = tr.querySelector(".approve-reject");
             if (acceptCb && rejectCb) {
-                if (status === 1)    { acceptCb.checked = true;  rejectCb.checked = false; }
+                if (status === 1)      { acceptCb.checked = true;  rejectCb.checked = false; }
                 else if (status === 0) { acceptCb.checked = false; rejectCb.checked = true;  }
-                else                 { acceptCb.checked = false; rejectCb.checked = false; }
+                else                   { acceptCb.checked = false; rejectCb.checked = false; }
             }
-            // update row style
             updateRowStyle(tr, status);
+            // Keep allRowsData in sync
+            const rowData = allRowsData.find(r => String(r[pkColumn]) === String(pk));
+            if (rowData) rowData["is_approved"] = status;
         }
-        flash("Updated all rows");
-        // Refresh all toggle visuals after bulk action
+
+        // Refresh all toggle visuals
         document.querySelectorAll("[id^='toggle-wrap-']").forEach(wrap => {
-            const pk = wrap.id.replace("toggle-wrap-","");
             const acceptBtn = wrap.querySelector(".accept-btn");
             const rejectBtn = wrap.querySelector(".reject-btn");
             if (!acceptBtn || !rejectBtn) return;
@@ -881,6 +882,125 @@
             rejectBtn.classList.toggle("active", status === 0);
             wrap.classList.toggle("is-pending", status === null);
         });
+
+        if (status === 1 && uploadId && rowCount > 0) {
+            // ── Mark rows only — show a CONFIRM banner, do NOT auto-approve yet ──
+            flash("✅ All rows marked Accepted");
+            showBulkReadyBanner();
+        } else if (status === 0 || status === null) {
+            // Rows rejected / cleared — revert upload back to pending
+            await revertUploadToPending();
+            document.getElementById("bulkResultBanner")?.remove();
+            flash(status === 0 ? "❌ All rows marked Rejected" : "⏳ All rows cleared to Pending");
+        } else {
+            flash("Updated all rows");
+        }
+    }
+
+    // ── Confirm banner: approver must click "Finalize" to actually approve ──
+    function showBulkReadyBanner() {
+        document.getElementById("bulkResultBanner")?.remove();
+        const banner = document.createElement("div");
+        banner.id = "bulkResultBanner";
+        banner.style.cssText = `
+            position:fixed; top:80px; left:50%; transform:translateX(-50%);
+            z-index:9998; padding:1rem 2rem; border-radius:12px;
+            font-weight:600; font-size:.95rem; display:flex; align-items:center; gap:.75rem;
+            box-shadow:0 8px 24px rgba(0,0,0,.2); flex-wrap:wrap;
+            background:#fefce8;color:#854d0e;border:2px solid #fde047;
+        `;
+        banner.innerHTML = `
+            <i class="fas fa-check-circle" style="font-size:1.2rem;color:#ca8a04;"></i>
+            All rows accepted. Click <strong style="margin:0 .3rem;">Finalize Approval</strong> to approve this upload.
+            <button onclick="finalizeUploadApproval()"
+                style="background:#16a34a;color:white;border:none;border-radius:8px;
+                       padding:.5rem 1.1rem;font-weight:700;cursor:pointer;font-size:.85rem;">
+                <i class="fas fa-check-double"></i> Finalize Approval
+            </button>
+            <button onclick="document.getElementById('bulkResultBanner')?.remove()"
+                style="background:#fef3c7;color:#854d0e;border:1px solid #fcd34d;
+                       border-radius:8px;padding:.5rem .8rem;font-weight:600;cursor:pointer;font-size:.82rem;">
+                Not Yet
+            </button>`;
+        document.body.appendChild(banner);
+    }
+
+    // ── Finalize: called only when approver explicitly clicks the button ──
+    async function finalizeUploadApproval() {
+        if (!uploadId) return;
+
+        // Safety check — re-verify no row is rejected or pending
+        const anyRejected = allRowsData.some(r => approvalStatus(r["is_approved"]) === 0);
+        const anyPending  = allRowsData.some(r => approvalStatus(r["is_approved"]) === null);
+
+        if (anyRejected) {
+            document.getElementById("bulkResultBanner")?.remove();
+            flash("❌ Cannot approve — some rows are still Rejected");
+            return;
+        }
+        if (anyPending) {
+            flash("⚠️ Some rows are still Pending — accept all rows first");
+            return;
+        }
+
+        const res = await fetch("/api/approve_upload", {
+            method: "POST", credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ upload_id: parseInt(uploadId) })
+        });
+        const out = await res.json();
+        document.getElementById("bulkResultBanner")?.remove();
+
+        if (res.ok) {
+            showBulkResultBanner("approved");
+        } else {
+            flash(out.error || "Failed to approve upload");
+        }
+    }
+
+    // ── Revert upload status to pending (NULL) when rows are un-accepted ──
+    async function revertUploadToPending() {
+        if (!uploadId) return;
+        try {
+            await fetch("/api/revert_upload_pending", {
+                method: "POST", credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ upload_id: parseInt(uploadId) })
+            });
+        } catch(e) { console.warn("revert pending failed", e); }
+    }
+
+    function showBulkResultBanner(type) {
+        // Remove existing banner
+        document.getElementById('bulkResultBanner')?.remove();
+
+        const isApproved = type === 'approved';
+        const banner = document.createElement('div');
+        banner.id = 'bulkResultBanner';
+        banner.style.cssText = `
+            position:fixed; top:80px; left:50%; transform:translateX(-50%);
+            z-index:9998; padding:1rem 2rem; border-radius:12px;
+            font-weight:700; font-size:1rem; display:flex; align-items:center; gap:.75rem;
+            box-shadow:0 8px 24px rgba(0,0,0,.2); animation:slideIn .3s ease-out;
+            ${isApproved
+                ? 'background:#d1fae5;color:#065f46;border:2px solid #6ee7b7;'
+                : 'background:#fef2f2;color:#991b1b;border:2px solid #fca5a5;'}
+        `;
+        banner.innerHTML = isApproved
+            ? `<i class="fas fa-check-circle" style="font-size:1.25rem;"></i>
+               Upload has been <strong>Approved</strong> — you can go back to the dashboard.
+               <button onclick="goBack()" style="margin-left:1rem;background:#065f46;color:white;border:none;
+                   border-radius:8px;padding:.5rem 1rem;font-weight:600;cursor:pointer;font-size:.85rem;">
+                   ← Back to Dashboard
+               </button>`
+            : `<i class="fas fa-times-circle" style="font-size:1.25rem;"></i>
+               All rows rejected — add remarks then reject the upload from the dashboard.`;
+
+        document.body.appendChild(banner);
+        if (isApproved) {
+            // Auto-dismiss after 10s
+            setTimeout(() => banner.remove(), 10000);
+        }
     }
 
     function updateRowStyle(tr, status) {
@@ -1361,6 +1481,22 @@
                 // Row un-rejected — clear remark button
                 refreshActionCellForRow(tr, pk);
             }
+
+            // ── When a row is rejected/cleared → revert upload status to pending ──
+            if ((newValue === 0 || newValue === null) && uploadId) {
+                await revertUploadToPending();
+                // Remove any existing approval banner
+                document.getElementById("bulkResultBanner")?.remove();
+            }
+
+            // ── When a row is accepted → check if ALL are now accepted, show Finalize banner ──
+            if (newValue === 1 && uploadId) {
+                const allAccepted = allRowsData.every(r => approvalStatus(r["is_approved"]) === 1);
+                if (allAccepted) {
+                    // flash("✅ All rows accepted");
+                    showBulkReadyBanner();
+                }
+            }
         }
     }
 
@@ -1556,21 +1692,8 @@
     /* ═══════════════════════════════════════════════
        DELETE ROW
        ═══════════════════════════════════════════════ */
-    // async function deleteRow(pk) {
-    //     if (!canApproveReject) return;
-    //     if (!confirm("Are you sure you want to delete this row?")) return;
-
-    //     await fetch("/api/delete_excel_row", {
-    //         method: "POST",
-    //         headers: { "Content-Type": "application/json" },
-    //         body: JSON.stringify({ table: tableName, id: pk })
-    //     });
-
-    //     flash("Row deleted");
-    //     setTimeout(loadTable, 500);
-    // }
     async function deleteRow(pk) {
-         if (!isEditable) return;
+        if (!canApproveReject) return;
         if (!confirm("Are you sure you want to delete this row?")) return;
 
         await fetch("/api/delete_excel_row", {
@@ -1582,7 +1705,6 @@
         flash("Row deleted");
         setTimeout(loadTable, 500);
     }
-
 
     /* ═══════════════════════════════════════════════
        UTILITIES
@@ -1616,13 +1738,12 @@
     }
 
     function goBack() {
-        if (document.referrer && document.referrer.includes(window.location.host)) {
-            window.history.back(); return;
-        }
+        // Never use history.back() — it replays the cached page with
+        // unrendered Jinja {{ table }} making tableName empty → "Missing table parameter"
         fetch("/api/current_user", { credentials: "include" })
             .then(r => r.json())
             .then(u => {
-                if (u.role === "admin")        window.location.href = "/admin_dashboard";
+                if (u.role === "admin")         window.location.href = "/admin_dashboard";
                 else if (u.role === "approver") window.location.href = "/approver_dashboard";
                 else                            window.location.href = "/user_dashboard";
             })

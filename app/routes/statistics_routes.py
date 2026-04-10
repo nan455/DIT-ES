@@ -239,7 +239,7 @@ def register_breakdown(cursor, conn):
 #      &from=YYYY-MM  (optional)
 #      &to=YYYY-MM    (optional)
 #
-#  For each register in txn_registry for that department,
+#  For each register in txn_registry for that department
 #  returns the upload status: approved / rejected / pending / not_uploaded
 # ─────────────────────────────────────────────────────────
 @statistics_bp.route("/api/statistics/dept_register_breakdown")

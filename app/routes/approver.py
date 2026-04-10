@@ -432,12 +432,12 @@ def reject_upload_with_remark(cursor, conn, upload_id):
         """, (remark, session.get("username"), upload_id))
 
         # Mark all data rows as rejected
-        # cursor.execute(f"""
-        #     UPDATE `{table}`
-        #     SET status_     = 0,
-        #         is_approved = 0
-        #     WHERE upload_id = %s
-        # """, (upload_id,))
+        cursor.execute(f"""
+            UPDATE `{table}`
+            SET status_     = 0,
+                is_approved = 0
+            WHERE upload_id = %s
+        """, (upload_id,))
 
         conn.commit()
         return jsonify({"message": "Upload rejected successfully"})
@@ -448,4 +448,30 @@ def reject_upload_with_remark(cursor, conn, upload_id):
         config_obj = current_app.config.get("CONFIG_OBJ")
         if config_obj:
             log_error_db(session.get("username"), request.path, str(e), tb, config_obj)
+        return jsonify({"error": str(e)}), 500
+
+
+# ─────────────────────────────────────────────────────────────
+#  Revert upload status back to NULL (pending)
+#  Called when approver rejects/clears a row after bulk-accept
+# ─────────────────────────────────────────────────────────────
+@approver_bp.route("/api/revert_upload_pending", methods=["POST"])
+@with_db_connection
+def revert_upload_pending(cursor, conn):
+    if "username" not in session or session.get("role") not in ("approver", "admin"):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data      = request.get_json()
+    upload_id = data.get("upload_id")
+    if not upload_id:
+        return jsonify({"error": "upload_id required"}), 400
+
+    try:
+        cursor.execute(
+            "UPDATE excel_uploads SET status_ = NULL WHERE id = %s",
+            (upload_id,)
+        )
+        conn.commit()
+        return jsonify({"message": "Upload reverted to pending"})
+    except Exception as e:
         return jsonify({"error": str(e)}), 500

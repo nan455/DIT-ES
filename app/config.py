@@ -6,13 +6,19 @@ class Config:
     """Base configuration class."""
     SECRET_KEY = os.environ.get("SECRET_KEY") or "supersecretkey"
     
+    # # Database configuration
+    # DB_HOST = os.environ.get("DB_HOST") or "127.0.0.1"
+    # DB_USER = os.environ.get("DB_USER") or "root"
+    # DB_PASSWORD = os.environ.get("DB_PASSWORD") or "nanda"
+    # DB_NAME = os.environ.get("DB_NAME") or "ESP_STG_DB"
+    # DB_PORT = 3306
+    #DB_PORT = int(os.environ.get("DB_PORT") or 3308)
     # Database configuration
     DB_HOST = os.environ.get("DB_HOST") or "127.0.0.1"
-    DB_USER = os.environ.get("DB_USER") or "root"
-    DB_PASSWORD = os.environ.get("DB_PASSWORD") or "nanda"
+    DB_USER = os.environ.get("DB_USER") 
+    DB_PASSWORD = os.environ.get("DB_PASSWORD")
     DB_NAME = os.environ.get("DB_NAME") or "ESP_STG_DB"
     DB_PORT = 3306
-    #DB_PORT = int(os.environ.get("DB_PORT") or 3308)
     
     # Folder paths
     UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER") or "uploads"
