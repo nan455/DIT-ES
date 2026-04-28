@@ -1,6 +1,10 @@
 """Excel processing and template generation utilities."""
 import io
 import pandas as pd
+import traceback
+from flask import session, request, current_app
+from app.utils.database import log_error_db
+from app.utils.validators import is_audit_column, is_refno_column
 from werkzeug.utils import secure_filename
 from app.utils.validators import (
     is_audit_column,
@@ -17,11 +21,6 @@ def load_metadata_for_table(cursor, table_name: str) -> dict:
     Load user-friendly names from tbl_column_metadata.
     Returns mapping: normalized_display_name -> db_column_name
     """
-    import traceback
-    from flask import session, request
-    from app.utils.database import log_error_db
-    from flask import current_app
-    
     try:
         cursor.execute("""
             SELECT column_name, display_label
@@ -32,17 +31,14 @@ def load_metadata_for_table(cursor, table_name: str) -> dict:
 
         mapping = {}
         for r in rows:
-            # r is dict like {'column_name': 'vet_aid_id', 'display_label': 'Veterinary Aid Type'}
             db_col = r.get("column_name") or r.get("col_name") or r.get("column") or ""
-            label = r.get("display_label") or r.get("displayname") or r.get("label") or ""
+            label  = r.get("display_label") or r.get("displayname") or r.get("label") or ""
             db_col = (db_col or "").strip()
-            label = (label or "").strip()
+            label  = (label  or "").strip()
             if not db_col or not label:
                 continue
-            key1 = label.lower()
-            key2 = label.replace(" ", "_").lower()
-            mapping[key1] = db_col
-            mapping[key2] = db_col
+            mapping[label.lower()]                   = db_col
+            mapping[label.replace(" ", "_").lower()] = db_col
         return mapping
     except Exception as e:
         tb = traceback.format_exc()
@@ -51,10 +47,69 @@ def load_metadata_for_table(cursor, table_name: str) -> dict:
         print("❌ ERROR: load_metadata_for_table:", e)
         return {}
 
+
 EXCEL_REMOVE_COLUMNS = {
     "upload_id",
     "is_approved",
 }
+
+
+def _ensure_key_type_column(cursor) -> None:
+    """
+    1. Add key_type column to tbl_column_metadata if it doesn't exist.
+    2. Backfill key_type = 'PRIMARY' for any column that is an actual
+       PRIMARY KEY in its target table, detected via information_schema.
+       This handles tables created before key_type tracking was added.
+    """
+    # ── Step 1: Add column if missing ──
+    cursor.execute("""
+        SELECT COUNT(*) AS cnt
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME   = 'tbl_column_metadata'
+          AND COLUMN_NAME  = 'key_type'
+    """)
+    col_exists = cursor.fetchone()["cnt"] > 0
+
+    if not col_exists:
+        try:
+            cursor.execute("""
+                ALTER TABLE tbl_column_metadata
+                    ADD COLUMN key_type VARCHAR(20) NOT NULL DEFAULT 'NONE'
+            """)
+            print("✅ Auto-migrated: added key_type to tbl_column_metadata")
+        except Exception as e:
+            err_str = str(e)
+            if "1060" in err_str or "Duplicate column" in err_str:
+                print("⚠️  key_type already added concurrently — continuing")
+            else:
+                raise
+
+    # ── Step 2: Backfill — find every (table_name, column_name) pair in
+    #    tbl_column_metadata whose key_type is still 'NONE' but the column
+    #    is actually a PRIMARY KEY in MySQL's information_schema. ──
+    #
+    # This fixes tables built before key_type tracking existed,
+    # e.g. the 'Test Id' column that was PK but stored as 'NONE'.
+    try:
+        cursor.execute("""
+            UPDATE tbl_column_metadata AS m
+            INNER JOIN information_schema.KEY_COLUMN_USAGE AS k
+                ON  k.TABLE_SCHEMA    = DATABASE()
+                AND k.TABLE_NAME      = m.table_name
+                AND k.COLUMN_NAME     = m.column_name
+                AND k.CONSTRAINT_NAME = 'PRIMARY'
+            SET m.key_type = 'PRIMARY'
+            WHERE (m.key_type IS NULL OR m.key_type = 'NONE')
+        """)
+        rows_updated = cursor.rowcount
+        if rows_updated > 0:
+            print(f"✅ Backfilled key_type='PRIMARY' for {rows_updated} metadata row(s)")
+    except Exception as e:
+        # Non-fatal — log and continue. Template may still include PK cols
+        # for old tables, but won't crash.
+        print(f"⚠️  key_type backfill warning: {e}")
+
 
 def generate_excel_template(
     cursor,
@@ -64,79 +119,99 @@ def generate_excel_template(
 ) -> io.BytesIO:
     """
     Generate an Excel template for a transaction table with dropdowns for FKs.
+    PRIMARY KEY columns are excluded from the template so users never fill them in.
+    Auto-migrates tbl_column_metadata to add + backfill key_type if missing.
     Returns a BytesIO object containing the Excel file.
     """
-    import traceback
-    from flask import session, request, current_app
-    from app.utils.database import log_error_db
-    from app.utils.validators import is_audit_column, is_refno_column
-    
     try:
-        # Validate table exists
+        # ── 0. Ensure key_type exists AND is backfilled from real PK info ──
+        _ensure_key_type_column(cursor)
+
+        # ── 1. Validate target table exists ──
         cursor.execute("SHOW TABLES LIKE %s", (table,))
         if not cursor.fetchone():
             raise ValueError(f"Table '{table}' not found")
 
-        # Get table columns
+        # ── 2. Get all columns from the target table ──
         cursor.execute(f"SHOW COLUMNS FROM `{table}`")
         cols_info = cursor.fetchall()
         db_cols = [c["Field"] for c in cols_info]
 
-        # Fetch metadata labels from tbl_column_metadata
+        # ── 3. Get the REAL primary key columns directly from MySQL ──
+        # This is the ground truth — works even if metadata is stale.
         cursor.execute("""
-            SELECT column_name, display_label
+            SELECT COLUMN_NAME
+            FROM information_schema.KEY_COLUMN_USAGE
+            WHERE TABLE_SCHEMA    = DATABASE()
+              AND TABLE_NAME      = %s
+              AND CONSTRAINT_NAME = 'PRIMARY'
+        """, (table,))
+        real_pk_columns = {r["COLUMN_NAME"] for r in cursor.fetchall()}
+
+        # ── 4. Fetch metadata (display labels + key_type) ──
+        cursor.execute("""
+            SELECT column_name,
+                   display_label,
+                   COALESCE(key_type, 'NONE') AS key_type
             FROM tbl_column_metadata
-            WHERE table_name=%s
+            WHERE table_name = %s
         """, (table,))
         meta_rows = cursor.fetchall()
 
-        # meta_rows may return keys column_name/display_label depending on how table is set up
-        # unify keys defensively
-        metadata = {}
+        metadata   = {}    # col_name → display_label
+        pk_columns = set() # col names excluded from template
+
         for r in meta_rows:
-            # r may be dict with keys exactly 'column_name' and 'display_label'
-            # or might have different capitalizations — handle gracefully
-            try:
-                col_key = r.get("column_name") or r.get("col_name") or r.get("column") or r.get("name")
-                label = r.get("display_label") or r.get("displayname") or r.get("label") or ""
-            except Exception:
-                col_key = None
-                label = ""
+            col_key  = (r.get("column_name") or r.get("col_name") or
+                        r.get("column")      or r.get("name") or "").strip()
+            label    = (r.get("display_label") or r.get("displayname") or
+                        r.get("label") or "").strip()
+            key_type = (r.get("key_type") or "NONE").upper().strip()
+
             if col_key:
                 metadata[col_key] = label
+                if key_type == "PRIMARY":
+                    pk_columns.add(col_key)
 
-        # Determine fillable columns (skip PK, audit fields)
+        # Merge with real PK info — catches any column the metadata missed
+        pk_columns |= real_pk_columns
+
+        # ── 5. Build fillable column list ──
         fillable = []
         for c in db_cols:
-            normalized = c.replace("_", "").lower()  # 🔥 KEY LINE
+            normalized = c.replace("_", "").lower()
 
-            # remove upload_id, isApproved, approved
             if normalized in {"uploadid", "isapproved", "approved"}:
-               continue
+                continue
             if is_audit_column(c):
-               continue
+                continue
             if is_refno_column(c):
-               continue
+                continue
+            if c in pk_columns:   # ← PRIMARY KEY hidden from template
+                continue
+
             fillable.append(c)
+
         if not fillable:
             raise ValueError("No editable columns found")
 
-        # Excel header names using metadata where present
+        # ── 6. Map DB column names → Excel header labels ──
         headers = []
         for col in fillable:
-            label = metadata.get(col, column_label.get(col, col.replace("_", " ").title()))
+            label = metadata.get(
+                col,
+                column_label.get(col, col.replace("_", " ").title())
+            )
             headers.append(label)
 
-        # Prepare dropdown lists for foreign keys
-        dropdown_sources = {}   # col → [name1, name2, ...]
+        # ── 7. Build FK dropdown data ──
+        dropdown_sources = {}
 
         for col in fillable:
             is_fk = col.endswith("_id") or col in lookup_config
-
             if not is_fk:
                 continue
 
-            # Determine master table
             if col in lookup_config:
                 master_table, desc_col, id_col = lookup_config[col]
             else:
@@ -150,10 +225,12 @@ def generate_excel_template(
                 f"SELECT `{desc_col}` AS name FROM `{master_table}` ORDER BY name"
             )
             rows = cursor.fetchall()
-            # rows likely each a dict with 'name'
-            dropdown_sources[col] = [r.get("name") if isinstance(r, dict) else r[0] for r in rows]
+            dropdown_sources[col] = [
+                r.get("name") if isinstance(r, dict) else r[0]
+                for r in rows
+            ]
 
-        # Create Excel file with header + FK dropdowns
+        # ── 8. Build Excel workbook ──
         output = io.BytesIO()
         df = pd.DataFrame(columns=headers)
 
@@ -161,9 +238,20 @@ def generate_excel_template(
             df.to_excel(writer, sheet_name="Template", index=False)
 
             workbook = writer.book
-            ws = writer.sheets["Template"]
+            ws       = writer.sheets["Template"]
 
-            # If there are dropdowns, create hidden list sheet
+            header_fmt = workbook.add_format({
+                "bold":       True,
+                "bg_color":   "#1e5a8e",
+                "font_color": "#ffffff",
+                "border":     1,
+                "align":      "center",
+                "valign":     "vcenter",
+            })
+            for col_idx, hdr in enumerate(headers):
+                ws.write(0, col_idx, hdr, header_fmt)
+                ws.set_column(col_idx, col_idx, max(18, len(hdr) + 4))
+
             if dropdown_sources:
                 list_ws = workbook.add_worksheet("_lists")
                 list_ws.hide()
@@ -173,29 +261,23 @@ def generate_excel_template(
 
                 for col, items in dropdown_sources.items():
                     range_name = f"list_{col}"
-
-                    # Write each dropdown item into the hidden sheet
                     for i, val in enumerate(items):
                         list_ws.write(cur_row + i, 0, val)
 
                     first_row = cur_row + 1
-                    last_row = cur_row + len(items)
-                    ref = f"'_lists'!$A${first_row}:$A${last_row}"
-
-                    workbook.define_name(range_name, ref)
+                    last_row  = cur_row + len(items)
+                    workbook.define_name(
+                        range_name,
+                        f"'_lists'!$A${first_row}:$A${last_row}"
+                    )
                     named_ranges[col] = range_name
-
                     cur_row += len(items) + 2
 
-                # Apply dropdown validation to each FK column
                 for idx, col in enumerate(fillable):
                     if col in named_ranges:
                         ws.data_validation(
                             1, idx, 5000, idx,
-                            {
-                                "validate": "list",
-                                "source": f"={named_ranges[col]}"
-                            }
+                            {"validate": "list", "source": f"={named_ranges[col]}"}
                         )
 
         output.seek(0)
@@ -208,4 +290,3 @@ def generate_excel_template(
         print("🔥 ERROR (template):", e)
         print(tb)
         raise
-

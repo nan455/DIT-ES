@@ -6,13 +6,13 @@ from app import create_app
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 
-# Ask user for DB credentials
-db_user = input("Enter DB Username: ")
-db_password = input("Enter DB Password: ")
+# # Ask user for DB credentials
+# db_user = input("Enter DB Username: ")
+# db_password = input("Enter DB Password: ")
 
-# Set environment variables
-os.environ["DB_USER"] = db_user
-os.environ["DB_PASSWORD"] = db_password
+# # Set environment variables
+# os.environ["DB_USER"] = db_user
+# os.environ["DB_PASSWORD"] = db_password
 
 app = create_app()
 

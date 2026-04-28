@@ -53,6 +53,7 @@ def create_app(config_object=None):
     from app.routes.approver import approver_bp
     from app.routes.grievance_routes import grievance_bp
     from app.routes.statistics_routes import statistics_bp
+    from app.routes.table_builder_routes import table_builder_bp
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(data_bp)
@@ -62,6 +63,7 @@ def create_app(config_object=None):
     app.register_blueprint(report_bp)
     app.register_blueprint(grievance_bp)
     app.register_blueprint(statistics_bp)
+    app.register_blueprint(table_builder_bp)
 
     #  Debug middleware (remove in production)
     @app.before_request

@@ -436,6 +436,71 @@
             height: 1px; background: var(--gray-100); margin: 0.25rem 0;
         }
 
+
+        /* ── TABLE BUILDER STEPS ── */
+        .tb-step-circle {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: var(--gray-200); color: var(--gray-600);
+            font-weight: 800; font-size: .9rem;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; transition: all .3s;
+        }
+        .tb-step.active .tb-step-circle {
+            background: var(--primary); color: white;
+            box-shadow: 0 0 0 4px rgba(30,90,142,.15);
+        }
+        .tb-step.done .tb-step-circle {
+            background: var(--success); color: white;
+        }
+        .tb-step.done .tb-step-circle::before { content: "✓"; }
+        .tb-step-line {
+            flex: 0 0 40px; height: 2px;
+            background: var(--gray-200); transition: background .3s;
+            margin: 0 .5rem;
+        }
+        .tb-step-line.done { background: var(--success); }
+
+        /* ── COLUMN ROW ── */
+        .tb-col-row {
+            display: grid;
+            grid-template-columns: 160px 160px 130px 90px 120px 140px 80px 80px 36px;
+            gap: .5rem; align-items: center;
+            padding: .625rem .875rem;
+            background: var(--gray-50);
+            border: 1.5px solid var(--gray-200);
+            border-radius: 8px;
+            transition: border-color .2s;
+        }
+        .tb-col-row:hover { border-color: var(--primary); }
+        .tb-col-row.fk-active { border-color: #a78bfa; background: #faf5ff; }
+
+        .tb-col-input {
+            padding: .45rem .65rem; border: 1.5px solid var(--gray-200);
+            border-radius: 6px; font-size: .82rem;
+            font-family: inherit; background: white; transition: border-color .2s;
+            width: 100%;
+        }
+        .tb-col-input:focus { outline: none; border-color: var(--primary); }
+        .tb-col-input.mono { font-family: monospace; }
+
+        .tb-col-label {
+            font-size: .7rem; font-weight: 700; color: var(--gray-600);
+            margin-bottom: .2rem;
+        }
+        .tb-col-del {
+            width: 32px; height: 32px; border: none; border-radius: 6px;
+            background: #fee2e2; color: #dc2626; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: .875rem; transition: all .2s; flex-shrink: 0;
+        }
+        .tb-col-del:hover { background: #dc2626; color: white; }
+
+        /* SQL syntax highlight classes */
+        .sql-kw  { color: #93c5fd; }
+        .sql-tbl { color: #fde68a; }
+        .sql-col { color: #86efac; }
+        .sql-typ { color: #f9a8d4; }
+        .sql-cmt { color: #64748b; font-style: italic; }
     </style>
 </head>
 <body>
@@ -483,6 +548,7 @@
         <button class="tab" onclick="switchTab('statistics', this)"><i class="fas fa-chart-pie"></i> Statistics</button>
         <button class="tab" onclick="switchTab('logs', this)"><i class="fas fa-bug"></i> Error Logs</button>
         <button class="tab" onclick="switchTab('grievance', this); loadGrievanceTickets();"><i class="fas fa-ticket-alt"></i> View Tickets</button>
+        <button class="tab" onclick="switchTab('tablebuilder', this)"><i class="fas fa-tools"></i> Table Builder</button>
     </div>
 
     <!-- ══════════════════════════════════════════════ -->
@@ -889,6 +955,215 @@
             </div>
         </div>
     </div>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- TABLE BUILDER TAB                              -->
+    <!-- ══════════════════════════════════════════════ -->
+    <div id="tablebuilder-tab" class="tab-content">
+
+        <!-- ── Step progress bar ── -->
+        <div style="display:flex;align-items:center;gap:0;margin-bottom:2rem;background:white;
+                    border-radius:12px;padding:1.25rem 2rem;box-shadow:var(--shadow-lg);">
+            <div class="tb-step active" id="tb-step-1" style="flex:1;display:flex;align-items:center;gap:.75rem;">
+                <div class="tb-step-circle" id="tb-circle-1">1</div>
+                <div><div style="font-weight:700;font-size:.85rem;color:var(--primary);">Table Info</div>
+                     <div style="font-size:.72rem;color:#64748b;">Name &amp; type</div></div>
+            </div>
+            <div class="tb-step-line" id="tb-line-1"></div>
+            <div class="tb-step" id="tb-step-2" style="flex:1;display:flex;align-items:center;gap:.75rem;">
+                <div class="tb-step-circle" id="tb-circle-2">2</div>
+                <div><div style="font-weight:700;font-size:.85rem;color:#94a3b8;">Columns</div>
+                     <div style="font-size:.72rem;color:#94a3b8;">Define fields</div></div>
+            </div>
+            <div class="tb-step-line" id="tb-line-2"></div>
+            <div class="tb-step" id="tb-step-3" style="flex:1;display:flex;align-items:center;gap:.75rem;">
+                <div class="tb-step-circle" id="tb-circle-3">3</div>
+                <div><div style="font-weight:700;font-size:.85rem;color:#94a3b8;">Preview &amp; Create</div>
+                     <div style="font-size:.72rem;color:#94a3b8;">Review &amp; submit</div></div>
+            </div>
+        </div>
+
+        <!-- ══ STEP 1: TABLE INFO ══ -->
+        <div id="tb-panel-1" class="card">
+            <div class="card-header">
+                <div class="card-title"><i class="fas fa-database"></i> Step 1 — Table Information</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+                <div class="form-group">
+                    <label class="form-label">Table Name <span style="color:var(--danger)">*</span></label>
+                    <input id="tb-table-name" class="input" placeholder="e.g. tbl_livestock_census"
+                        oninput="tbValidateTableName(this)"
+                        style="font-family:monospace;font-size:.9rem;">
+                    <small style="color:#64748b;font-size:.75rem;">
+                        Lowercase, underscores only. Will be created as-is in MySQL.
+                    </small>
+                    <div id="tb-table-name-err" style="color:var(--danger);font-size:.75rem;margin-top:.25rem;display:none;"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Display / Report Name <span style="color:var(--danger)">*</span></label>
+                    <input id="tb-report-name" class="input" placeholder="e.g. Livestock Census Details">
+                    <small style="color:#64748b;font-size:.75rem;">
+                        Shown in the user dropdown when selecting a register to upload.
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Table Type <span style="color:var(--danger)">*</span></label>
+                    <div style="display:flex;gap:.75rem;margin-top:.25rem;">
+                        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;
+                            padding:.6rem 1.25rem;border-radius:8px;border:2px solid var(--gray-200);
+                            flex:1;transition:all .2s;" id="tb-type-transaction-label">
+                            <input type="radio" name="tb-table-type" value="transaction"
+                                   onchange="tbSelectType('transaction')" style="accent-color:var(--primary);">
+                            <div>
+                                <div style="font-weight:700;font-size:.85rem;">Transaction</div>
+                                <div style="font-size:.72rem;color:#64748b;">Stores uploaded Excel data (has upload_id FK)</div>
+                            </div>
+                        </label>
+                        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;
+                            padding:.6rem 1.25rem;border-radius:8px;border:2px solid var(--gray-200);
+                            flex:1;transition:all .2s;" id="tb-type-master-label">
+                            <input type="radio" name="tb-table-type" value="master"
+                                   onchange="tbSelectType('master')" style="accent-color:var(--primary);">
+                            <div>
+                                <div style="font-weight:700;font-size:.85rem;">Master / Lookup</div>
+                                <div style="font-size:.72rem;color:#64748b;">Reference data (departments, categories etc.)</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Department <span style="color:#94a3b8;font-weight:400;">(for transaction tables)</span></label>
+                    <select id="tb-department" class="select">
+                        <option value="">-- All departments / Not applicable --</option>
+                    </select>
+                    <small style="color:#64748b;font-size:.75rem;">
+                        If set, this table will be registered in txn_registry for that department.
+                    </small>
+                </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;margin-top:1.5rem;">
+                <button class="btn btn-primary" onclick="tbGoStep(2)">
+                    Next: Define Columns <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- ══ STEP 2: COLUMNS ══ -->
+        <div id="tb-panel-2" class="card" style="display:none;">
+    <div class="card-header">
+        <div class="card-title"><i class="fas fa-columns"></i> Step 2 — Define Columns</div>
+        <button class="btn btn-success btn-sm" onclick="tbAddColumn()">
+            <i class="fas fa-plus"></i> Add Column
+        </button>
+    </div>
+ 
+    <!-- System columns notice -->
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;
+                padding:.75rem 1rem;margin-bottom:1.25rem;font-size:.82rem;color:#1e40af;
+                display:flex;align-items:center;gap:.6rem;">
+        <i class="fas fa-info-circle"></i>
+        <span>
+            System columns are added automatically:
+            <strong>upload_id</strong> (FK, transaction only),
+            <strong>created_by</strong>, <strong>created_date</strong>,
+            <strong>updated_by</strong>, <strong>updated_date</strong>,
+            <strong>status_</strong>, <strong>is_approved</strong>.
+            Define your own <strong>PRIMARY KEY</strong> column below using the Key Type dropdown.
+        </span>
+    </div>
+ 
+    <!-- Column header labels -->
+    <div style="display:grid;
+                grid-template-columns:160px 160px 150px 90px 110px 150px 120px 36px;
+                gap:.5rem;padding:.4rem .875rem;margin-bottom:.25rem;">
+        <div class="tb-col-label" style="font-size:.72rem;font-weight:700;color:#64748b;">Column Name *</div>
+        <div class="tb-col-label" style="font-size:.72rem;font-weight:700;color:#64748b;">Display Label *</div>
+        <div class="tb-col-label" style="font-size:.72rem;font-weight:700;color:#64748b;">Data Type *</div>
+        <div class="tb-col-label" style="font-size:.72rem;font-weight:700;color:#64748b;">Nullable</div>
+        <div class="tb-col-label" style="font-size:.72rem;font-weight:700;color:#64748b;">Default Value</div>
+        <div class="tb-col-label" style="font-size:.72rem;font-weight:700;color:#64748b;">FK → Master Table</div>
+        <div class="tb-col-label" style="font-size:.72rem;font-weight:700;color:#64748b;">Key Type</div>
+        <div></div>
+    </div>
+ 
+    <!-- Column rows injected by JS -->
+    <div id="tb-column-list" style="display:flex;flex-direction:column;gap:.75rem;"></div>
+ 
+    <div style="display:flex;justify-content:space-between;margin-top:1.5rem;">
+        <button class="btn btn-ghost" onclick="tbGoStep(1)">
+            <i class="fas fa-arrow-left"></i> Back
+        </button>
+        <button class="btn btn-primary" onclick="tbGoStep(3)">
+            Preview &amp; Create <i class="fas fa-arrow-right"></i>
+        </button>
+    </div>
+</div>
+
+        <!-- ══ STEP 3: PREVIEW ══ -->
+        <div id="tb-panel-3" class="card" style="display:none;">
+            <div class="card-header">
+                <div class="card-title"><i class="fas fa-eye"></i> Step 3 — Preview &amp; Create</div>
+                <button class="btn btn-ghost btn-sm" onclick="tbGoStep(2)">
+                    <i class="fas fa-arrow-left"></i> Edit Columns
+                </button>
+            </div>
+
+            <!-- Table info summary -->
+            <div id="tb-preview-info" style="background:#f8fafc;border:1.5px solid #e2e8f0;
+                border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.25rem;
+                display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;font-size:.875rem;">
+            </div>
+
+            <!-- Generated SQL preview -->
+            <div style="margin-bottom:1.25rem;">
+                <div style="font-weight:700;font-size:.85rem;color:#334155;margin-bottom:.5rem;
+                    display:flex;align-items:center;gap:.5rem;">
+                    <i class="fas fa-code" style="color:var(--primary);"></i> Generated SQL Preview
+                    <span style="font-size:.72rem;font-weight:400;color:#64748b;
+                        background:#f1f5f9;border-radius:4px;padding:.1rem .5rem;">read-only</span>
+                </div>
+                <div id="tb-sql-preview" style="background:#0f172a;color:#e2e8f0;
+                    border-radius:10px;padding:1.25rem;font-family:monospace;font-size:.8rem;
+                    line-height:1.7;overflow-x:auto;white-space:pre;max-height:300px;overflow-y:auto;">
+                </div>
+            </div>
+
+            <!-- Column preview table -->
+            <div class="table-container" style="margin-bottom:1.25rem;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Column Name</th>
+                            <th>Display Label</th>
+                            <th>Data Type</th>
+                            <th>Nullable</th>
+                            <th>Default</th>
+                            <th>FK Reference</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tb-preview-columns"></tbody>
+                </table>
+            </div>
+
+            <!-- Result banner (shown after create) -->
+            <div id="tb-result-banner" style="display:none;padding:1rem 1.25rem;border-radius:10px;
+                margin-bottom:1rem;font-weight:600;font-size:.9rem;"></div>
+
+            <div style="display:flex;justify-content:flex-end;gap:.75rem;">
+                <button class="btn btn-ghost" onclick="tbReset()">
+                    <i class="fas fa-redo"></i> Start Over
+                </button>
+                <button class="btn btn-success" id="tb-create-btn" onclick="tbCreateTable()">
+                    <i class="fas fa-magic"></i> Create Table
+                </button>
+            </div>
+        </div>
+
+    </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════ -->
@@ -1169,7 +1444,6 @@ async function apiDelete(url) {
 // ═══════════════════════════════════════════════════════════
 function switchTab(tabName, btn) {
     // ✅ SECURITY: Never expose tab name in URL
-    // Wipe any hash, query params, or state from the address bar silently
     history.replaceState(null, '', window.location.pathname);
 
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1178,8 +1452,9 @@ function switchTab(tabName, btn) {
     else document.querySelector(`.tab[onclick*="${tabName}"]`)?.classList.add('active');
     document.getElementById(`${tabName}-tab`).classList.add('active');
 
-    if (tabName === 'statistics') loadStatistics();
-    if (tabName === 'logs')       loadErrorLogs();
+    if (tabName === 'statistics')   loadStatistics();
+    if (tabName === 'logs')         loadErrorLogs();
+    if (tabName === 'tablebuilder') tbPopulateDepartments();
 }
 
 // ✅ SECURITY: Block URL-based tab navigation on page load
@@ -1617,7 +1892,11 @@ async function submitChangeCredentials() {
 async function loadDepartments() {
     const res  = await fetch('/api/departments');
     const data = await res.json();
-    const sel  = document.getElementById('departmentSelect');
+    
+    // ✅ ADD THIS LINE — store for use by Table Builder & Registry
+    departments = data.map(r => typeof r === 'string' ? r : r.name || r.department || r);
+    
+    const sel = document.getElementById('departmentSelect');
     sel.innerHTML = '<option value="">-- Select Department --</option>';
     data.forEach(r => {
         const opt = document.createElement('option');
@@ -2593,5 +2872,716 @@ document.addEventListener("keydown", e => {
 });
 </script>
 
+
+<!-- ═══════════════ TABLE BUILDER JS ═══════════════ -->
+<style>
+/* Updated grid: 8 columns (removed separate PK + AI, replaced with Key Type) */
+.tb-col-row {
+    display: grid;
+    grid-template-columns: 160px 160px 150px 90px 110px 150px 120px 36px;
+    gap: .5rem;
+    align-items: center;
+    padding: .625rem .875rem;
+    background: var(--gray-50);
+    border: 1.5px solid var(--gray-200);
+    border-radius: 8px;
+    transition: border-color .2s, background .2s;
+}
+.tb-col-row:hover { border-color: var(--primary); }
+.tb-col-row.pk-active  { border-color: #10b981; background: #f0fdf4; }
+.tb-col-row.fk-active  { border-color: #a78bfa; background: #faf5ff; }
+</style>
+ 
+ 
+ 
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// TABLE BUILDER STATE
+// ─────────────────────────────────────────────────────────────────────────────
+let tbCurrentStep = 1;
+let tbColIdSeq    = 0;
+ 
+const TB_DATA_TYPES = [
+    { value:"VARCHAR(100)",   label:"VARCHAR(100) — Short text"       },
+    { value:"VARCHAR(255)",   label:"VARCHAR(255) — Medium text"      },
+    { value:"VARCHAR(500)",   label:"VARCHAR(500) — Long text"        },
+    { value:"TEXT",           label:"TEXT — Large text / notes"       },
+    { value:"INT",            label:"INT — Whole number"              },
+    { value:"BIGINT",         label:"BIGINT — Large number"           },
+    { value:"DECIMAL(10,2)",  label:"DECIMAL(10,2) — Amount / money"  },
+    { value:"FLOAT",          label:"FLOAT — Decimal number"          },
+    { value:"DATE",           label:"DATE — Date (YYYY-MM-DD)"        },
+    { value:"DATETIME",       label:"DATETIME — Date + Time"          },
+    { value:"YEAR",           label:"YEAR — Year only"                },
+    { value:"TINYINT(1)",     label:"TINYINT(1) — Boolean (0/1)"     },
+];
+ 
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP NAVIGATION
+// ─────────────────────────────────────────────────────────────────────────────
+function tbGoStep(step) {
+    if (step === 2 && !tbValidateStep1()) return;
+    if (step === 3 && !tbValidateStep2()) return;
+ 
+    tbCurrentStep = step;
+ 
+    [1, 2, 3].forEach(n => {
+        const panel  = document.getElementById(`tb-panel-${n}`);
+        const circle = document.getElementById(`tb-circle-${n}`);
+        const stepEl = document.getElementById(`tb-step-${n}`);
+        const line   = document.getElementById(`tb-line-${n}`);
+ 
+        panel.style.display = (n === step) ? '' : 'none';
+ 
+        if (n < step) {
+            stepEl.className        = 'tb-step done';
+            circle.innerHTML        = '<i class="fas fa-check" style="font-size:.7rem;"></i>';
+            circle.style.background = 'var(--success)';
+            circle.style.color      = 'white';
+            if (line) line.className = 'tb-step-line done';
+        } else if (n === step) {
+            stepEl.className        = 'tb-step active';
+            circle.textContent      = n;
+            circle.style.background = 'var(--primary)';
+            circle.style.color      = 'white';
+            if (line) line.className = 'tb-step-line';
+        } else {
+            stepEl.className        = 'tb-step';
+            circle.textContent      = n;
+            circle.style.background = '';
+            circle.style.color      = '';
+            if (line) line.className = 'tb-step-line';
+        }
+    });
+ 
+    if (step === 2 && document.getElementById('tb-column-list').children.length === 0) {
+        tbAddColumn();
+    }
+    if (step === 3) {
+        tbBuildPreview();
+    }
+}
+ 
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 1 VALIDATION
+// ─────────────────────────────────────────────────────────────────────────────
+function tbValidateTableName(input) {
+    const val = input.value.trim();
+    const err = document.getElementById('tb-table-name-err');
+    const ok  = /^[a-z][a-z0-9_]*$/.test(val);
+    if (!ok && val) {
+        err.textContent   = 'Only lowercase letters, numbers and underscores. Must start with a letter.';
+        err.style.display = '';
+        input.style.borderColor = 'var(--danger)';
+    } else {
+        err.style.display = 'none';
+        input.style.borderColor = '';
+    }
+    return ok || !val;
+}
+ 
+function tbValidateStep1() {
+    const name   = document.getElementById('tb-table-name').value.trim();
+    const report = document.getElementById('tb-report-name').value.trim();
+    const type   = document.querySelector('input[name="tb-table-type"]:checked');
+ 
+    if (!name)   { showToast('Please enter a table name', 'error');          return false; }
+    if (!/^[a-z][a-z0-9_]*$/.test(name)) { showToast('Invalid table name format', 'error'); return false; }
+    if (!report) { showToast('Please enter a display/report name', 'error'); return false; }
+    if (!type)   { showToast('Please select a table type', 'error');         return false; }
+    return true;
+}
+ 
+function tbSelectType(type) {
+    const tLabel  = document.getElementById('tb-type-transaction-label');
+    const mLabel  = document.getElementById('tb-type-master-label');
+ 
+    tLabel.style.borderColor = type === 'transaction' ? 'var(--primary)' : 'var(--gray-200)';
+    tLabel.style.background  = type === 'transaction' ? '#eff6ff'        : '';
+    mLabel.style.borderColor = type === 'master'      ? 'var(--primary)' : 'var(--gray-200)';
+    mLabel.style.background  = type === 'master'      ? '#eff6ff'        : '';
+}
+ 
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 2 — ADD / REMOVE COLUMNS
+// ─────────────────────────────────────────────────────────────────────────────
+function tbAddColumn() {
+    const id   = ++tbColIdSeq;
+    const list = document.getElementById('tb-column-list');
+ 
+    const typeOpts = TB_DATA_TYPES.map(t =>
+        `<option value="${t.value}">${t.label}</option>`
+    ).join('');
+ 
+    const row = document.createElement('div');
+    row.className = 'tb-col-row';
+    row.id        = `tb-col-${id}`;
+    row.innerHTML = `
+        <!-- Column Name -->
+        <input class="tb-col-input mono"
+               id="tb-col-name-${id}"
+               placeholder="e.g. farmer_id"
+               oninput="tbColNameInput(this)"
+               title="Lowercase, underscores only">
+ 
+        <!-- Display Label -->
+        <input class="tb-col-input"
+               id="tb-col-label-${id}"
+               placeholder="e.g. Farmer ID"
+               title="Shown as Excel column header">
+ 
+        <!-- Data Type -->
+        <select class="tb-col-input"
+                id="tb-col-type-${id}"
+                onchange="tbOnTypeChange(${id})">
+            ${typeOpts}
+        </select>
+ 
+        <!-- Nullable -->
+        <select class="tb-col-input" id="tb-col-null-${id}">
+            <option value="YES">NULL ok</option>
+            <option value="NO">NOT NULL</option>
+        </select>
+ 
+        <!-- Default Value -->
+        <input class="tb-col-input"
+               id="tb-col-default-${id}"
+               placeholder="(none)">
+ 
+        <!-- FK Reference -->
+        <input class="tb-col-input"
+               id="tb-col-fk-${id}"
+               placeholder="e.g. tbl_districts(id)"
+               title="Optional: tablename(column)">
+ 
+        <!-- Key Type — single dropdown replacing old PK radio + AI radio -->
+        <select class="tb-col-input"
+                id="tb-col-keytype-${id}"
+                onchange="tbOnKeyTypeChange(${id})"
+                title="Select PRIMARY KEY, FOREIGN KEY, or leave as None">
+            <option value="NONE">— None —</option>
+            <option value="PRIMARY">🔑 PRIMARY KEY</option>
+            <option value="FOREIGN">🔗 FOREIGN KEY</option>
+        </select>
+ 
+        <!-- Delete button -->
+        <button class="tb-col-del" onclick="tbRemoveColumn(${id})" title="Remove column">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+ 
+    list.appendChild(row);
+ 
+    // Animate in
+    row.style.opacity   = '0';
+    row.style.transform = 'translateY(-8px)';
+    requestAnimationFrame(() => {
+        row.style.transition = 'all .2s ease';
+        row.style.opacity    = '1';
+        row.style.transform  = 'translateY(0)';
+    });
+ 
+    document.getElementById(`tb-col-name-${id}`).focus();
+}
+ 
+/* Auto-fill display label from snake_case column name */
+function tbColNameInput(input) {
+    const labelInput = input.closest('.tb-col-row').querySelector('[id^="tb-col-label-"]');
+    if (labelInput && !labelInput.dataset.userEdited) {
+        labelInput.value = input.value
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, c => c.toUpperCase());
+    }
+    input.value = input.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+}
+ 
+/* When data type changes — if PK is set and new type is not INT/BIGINT, warn */
+function tbOnTypeChange(id) {
+    const type    = document.getElementById(`tb-col-type-${id}`).value;
+    const keyType = document.getElementById(`tb-col-keytype-${id}`).value;
+ 
+    if (keyType === 'PRIMARY' && !['INT','BIGINT'].includes(type)) {
+        showToast(`⚠️ AUTO_INCREMENT only works with INT or BIGINT. Change type or remove PRIMARY KEY.`, 'warn');
+    }
+}
+ 
+/* When key type changes — update row styling and FK field state */
+function tbOnKeyTypeChange(id) {
+    const keyType  = document.getElementById(`tb-col-keytype-${id}`).value;
+    const row      = document.getElementById(`tb-col-${id}`);
+    const nullSel  = document.getElementById(`tb-col-null-${id}`);
+    const fkInput  = document.getElementById(`tb-col-fk-${id}`);
+    const typeVal  = document.getElementById(`tb-col-type-${id}`).value;
+ 
+    // Remove all key-type classes first
+    row.classList.remove('pk-active', 'fk-active');
+ 
+    if (keyType === 'PRIMARY') {
+        row.classList.add('pk-active');
+        // PK must be NOT NULL
+        if (nullSel) nullSel.value = 'NO';
+        // FK field not relevant for PK
+        if (fkInput) {
+            fkInput.value       = '';
+            fkInput.disabled    = true;
+            fkInput.placeholder = '(N/A for Primary Key)';
+            fkInput.style.opacity = '0.4';
+        }
+        // Warn if non-integer PK (no auto increment)
+        if (!['INT','BIGINT'].includes(typeVal)) {
+            showToast('Note: AUTO_INCREMENT only applies to INT / BIGINT columns.', 'info');
+        }
+    } else if (keyType === 'FOREIGN') {
+        row.classList.add('fk-active');
+        if (fkInput) {
+            fkInput.disabled    = false;
+            fkInput.placeholder = 'e.g. tbl_districts(id)';
+            fkInput.style.opacity = '1';
+        }
+        if (fkInput && !fkInput.value) fkInput.focus();
+    } else {
+        // NONE
+        if (fkInput) {
+            fkInput.disabled    = false;
+            fkInput.placeholder = 'e.g. tbl_districts(id)';
+            fkInput.style.opacity = '1';
+        }
+    }
+}
+ 
+function tbRemoveColumn(id) {
+    const row = document.getElementById(`tb-col-${id}`);
+    if (!row) return;
+    row.style.transition = 'all .2s ease';
+    row.style.opacity    = '0';
+    row.style.transform  = 'translateX(20px)';
+    setTimeout(() => row.remove(), 200);
+}
+ 
+function tbValidateStep2() {
+    const rows = document.querySelectorAll('.tb-col-row');
+    if (!rows.length) {
+        showToast('Add at least one column', 'error');
+        return false;
+    }
+ 
+    let valid   = true;
+    let pkCount = 0;
+ 
+    rows.forEach(row => {
+        const nameInput  = row.querySelector('[id^="tb-col-name-"]');
+        const labelInput = row.querySelector('[id^="tb-col-label-"]');
+        const keyType    = row.querySelector('[id^="tb-col-keytype-"]')?.value || 'NONE';
+        const fkInput    = row.querySelector('[id^="tb-col-fk-"]');
+ 
+        if (!nameInput.value.trim()) {
+            nameInput.style.borderColor = 'var(--danger)';
+            valid = false;
+        } else {
+            nameInput.style.borderColor = '';
+        }
+        if (!labelInput.value.trim()) {
+            labelInput.style.borderColor = 'var(--danger)';
+            valid = false;
+        } else {
+            labelInput.style.borderColor = '';
+        }
+ 
+        if (keyType === 'PRIMARY') pkCount++;
+ 
+        if (keyType === 'FOREIGN' && fkInput && !fkInput.value.trim()) {
+            fkInput.style.borderColor = 'var(--danger)';
+            showToast(`FK reference missing for column "${nameInput.value}"`, 'error');
+            valid = false;
+        } else if (fkInput) {
+            fkInput.style.borderColor = '';
+        }
+    });
+ 
+    if (!valid) {
+        showToast('Please fill all required fields (highlighted in red)', 'error');
+        return false;
+    }
+    if (pkCount > 1) {
+        showToast('Only ONE Primary Key column is allowed', 'error');
+        return false;
+    }
+ 
+    return true;
+}
+ 
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 3 — BUILD PREVIEW & SQL
+// ─────────────────────────────────────────────────────────────────────────────
+ 
+/* Collect all form values into a structured object.
+   Field names EXACTLY match what table_builder_routes.py expects. */
+function tbGetTableData() {
+    const tableName   = document.getElementById('tb-table-name').value.trim();
+    const reportName  = document.getElementById('tb-report-name').value.trim();
+    const tableType   = document.querySelector('input[name="tb-table-type"]:checked')?.value || 'transaction';
+    const department  = document.getElementById('tb-department').value;
+    const isTransaction = tableType === 'transaction';
+ 
+    const columns = [];
+    document.querySelectorAll('.tb-col-row').forEach(row => {
+        const nameInput    = row.querySelector('[id^="tb-col-name-"]');
+        const labelInput   = row.querySelector('[id^="tb-col-label-"]');
+        const typeInput    = row.querySelector('[id^="tb-col-type-"]');
+        const nullInput    = row.querySelector('[id^="tb-col-null-"]');
+        const defInput     = row.querySelector('[id^="tb-col-default-"]');
+        const fkInput      = row.querySelector('[id^="tb-col-fk-"]');
+        const keyTypeInput = row.querySelector('[id^="tb-col-keytype-"]');
+ 
+        const keyType = keyTypeInput?.value || 'NONE';
+        const colType = typeInput?.value     || 'VARCHAR(100)';
+ 
+        columns.push({
+            name:           nameInput?.value.trim()  || '',
+            label:          labelInput?.value.trim() || '',
+            type:           colType,
+            nullable:       nullInput?.value         || 'YES',
+            default:        defInput?.value.trim()   || '',
+            // ── Backend-expected field names ──
+            key_type:       keyType,
+            fk_ref:         (keyType === 'FOREIGN') ? (fkInput?.value.trim() || '') : '',
+            auto_increment: (keyType === 'PRIMARY' && ['INT','BIGINT'].includes(colType)),
+        });
+    });
+ 
+    return { tableName, reportName, tableType, department, isTransaction, columns };
+}
+ 
+function tbBuildPreview() {
+    const d = tbGetTableData();
+ 
+    // ── Info summary ──
+    const infoEl = document.getElementById('tb-preview-info');
+    infoEl.innerHTML = `
+        <div>
+            <div style="font-size:.72rem;font-weight:700;color:#64748b;margin-bottom:.25rem;">TABLE NAME</div>
+            <div style="font-family:monospace;font-weight:700;color:var(--primary);font-size:.95rem;">${d.tableName}</div>
+        </div>
+        <div>
+            <div style="font-size:.72rem;font-weight:700;color:#64748b;margin-bottom:.25rem;">DISPLAY NAME</div>
+            <div style="font-weight:700;color:#0f172a;font-size:.95rem;">${d.reportName}</div>
+        </div>
+        <div>
+            <div style="font-size:.72rem;font-weight:700;color:#64748b;margin-bottom:.25rem;">TYPE</div>
+            <span style="background:${d.isTransaction ? '#dbeafe' : '#d1fae5'};
+                color:${d.isTransaction ? '#1e40af' : '#065f46'};
+                padding:.25rem .75rem;border-radius:999px;font-size:.78rem;font-weight:700;">
+                ${d.isTransaction ? '📊 Transaction' : '📋 Master / Lookup'}
+            </span>
+        </div>
+        ${d.department ? `<div>
+            <div style="font-size:.72rem;font-weight:700;color:#64748b;margin-bottom:.25rem;">DEPARTMENT</div>
+            <div style="font-weight:600;color:#0f172a;">${d.department}</div>
+        </div>` : ''}
+        <div>
+            <div style="font-size:.72rem;font-weight:700;color:#64748b;margin-bottom:.25rem;">DATA COLUMNS</div>
+            <div style="font-weight:700;color:#0f172a;font-size:1.1rem;">${d.columns.length}</div>
+        </div>
+    `;
+ 
+    // ── SQL preview ──
+    const sql = tbGenerateSQL(d);
+    if (!sql) return;   // tbGenerateSQL already showed error toast
+    document.getElementById('tb-sql-preview').innerHTML = tbHighlightSQL(sql);
+ 
+    // ── Column preview table ──
+    const tbody = document.getElementById('tb-preview-columns');
+    tbody.innerHTML = d.columns.map((col, i) => {
+        let keyBadge = '';
+        if (col.key_type === 'PRIMARY') {
+            keyBadge = '<span style="background:#d1fae5;color:#065f46;padding:.2rem .6rem;border-radius:4px;font-size:.72rem;font-weight:700;">🔑 PK' +
+                       (col.auto_increment ? ' + AI' : '') + '</span>';
+        } else if (col.key_type === 'FOREIGN') {
+            keyBadge = '<span style="background:#ede9fe;color:#5b21b6;padding:.2rem .6rem;border-radius:4px;font-size:.72rem;font-weight:700;">🔗 FK</span>';
+        }
+ 
+        return `<tr>
+            <td style="font-weight:700;color:#94a3b8;">${i + 1}</td>
+            <td><code style="font-size:.82rem;color:var(--primary);">${col.name}</code></td>
+            <td><strong>${col.label}</strong>
+                ${col.key_type !== 'NONE' ? `<br><small style="color:#94a3b8;font-size:.7rem;">hidden in template</small>` : ''}
+            </td>
+            <td><span style="background:#fef3c7;color:#92400e;padding:.2rem .6rem;
+                border-radius:4px;font-family:monospace;font-size:.78rem;">${col.type}</span></td>
+            <td>${col.nullable === 'YES'
+                ? '<span style="color:#94a3b8;font-size:.8rem;">NULL ok</span>'
+                : '<span style="color:#dc2626;font-size:.8rem;font-weight:600;">NOT NULL</span>'}</td>
+            <td style="font-size:.8rem;color:#64748b;">${col.default || '—'}</td>
+            <td>${keyBadge || '<span style="color:#cbd5e1;font-size:.75rem;">—</span>'}</td>
+            <td style="font-family:monospace;font-size:.75rem;color:#7c3aed;">${col.fk_ref || '—'}</td>
+        </tr>`;
+    }).join('');
+ 
+    // Update column preview table header to show FK ref column
+    // (handled by existing HTML — no change needed)
+ 
+    // Reset result banner
+    document.getElementById('tb-result-banner').style.display = 'none';
+    const btn = document.getElementById('tb-create-btn');
+    btn.disabled          = false;
+    btn.innerHTML         = '<i class="fas fa-magic"></i> Create Table';
+    btn.style.background  = '';
+}
+ 
+/* Generate SQL string that exactly mirrors table_builder_routes.py logic */
+function tbGenerateSQL(d) {
+    const { tableName, isTransaction, columns } = d;
+ 
+    // ── Guard rails ──
+    const pkCols = columns.filter(c => c.key_type === 'PRIMARY');
+    const aiCols = columns.filter(c => c.auto_increment);
+ 
+    if (pkCols.length > 1) {
+        showToast('Only ONE Primary Key column is allowed', 'error');
+        return null;
+    }
+    if (aiCols.length > 1) {
+        showToast('Only ONE Auto Increment column is allowed', 'error');
+        return null;
+    }
+    if (aiCols.length === 1 && !['INT','BIGINT'].includes(aiCols[0].type)) {
+        showToast('Auto Increment only works with INT or BIGINT', 'error');
+        return null;
+    }
+ 
+    const lines = [`CREATE TABLE IF NOT EXISTS \`${tableName}\` (`];
+ 
+    // ── User-defined column definitions ──
+    columns.forEach(col => {
+        const nullStr = (col.nullable === 'NO' || col.key_type === 'PRIMARY') ? ' NOT NULL' : '';
+        const aiStr   = col.auto_increment ? ' AUTO_INCREMENT' : '';
+        const defStr  = col.default ? ` DEFAULT '${col.default}'` : '';
+        lines.push(`    \`${col.name}\` ${col.type}${nullStr}${aiStr}${defStr},`);
+    });
+ 
+    // ── PRIMARY KEY constraint (after column defs — mirrors backend) ──
+    if (pkCols.length) {
+        lines.push(`    PRIMARY KEY (${pkCols.map(c => `\`${c.name}\``).join(', ')}),`);
+    }
+ 
+    // ── System columns ──
+    if (isTransaction) {
+        lines.push(`    \`upload_id\` INT DEFAULT NULL,`);
+    }
+    lines.push(`    \`created_by\`   VARCHAR(100),`);
+    lines.push(`    \`created_date\` DATETIME DEFAULT CURRENT_TIMESTAMP,`);
+    lines.push(`    \`updated_by\`   VARCHAR(100),`);
+    lines.push(`    \`updated_date\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,`);
+    lines.push(`    \`status_\`      TINYINT DEFAULT NULL,`);
+ 
+    if (isTransaction) {
+        lines.push(`    \`is_approved\`  TINYINT DEFAULT NULL`);
+        lines.push(`);`);
+        lines.push(``);
+        lines.push(`-- FK: link to excel_uploads`);
+        lines.push(`ALTER TABLE \`${tableName}\``);
+        lines.push(`    ADD CONSTRAINT \`fk_${tableName}_upload\``);
+        lines.push(`    FOREIGN KEY (\`upload_id\`) REFERENCES \`excel_uploads\`(\`id\`) ON DELETE SET NULL;`);
+    } else {
+        lines.push(`    \`is_active\` TINYINT(1) DEFAULT 1`);
+        lines.push(`);`);
+    }
+ 
+    // ── User-defined FK constraints ──
+    const fkCols = columns.filter(c => c.key_type === 'FOREIGN' && c.fk_ref);
+    if (fkCols.length) {
+        lines.push(``);
+        lines.push(`-- User-defined FK constraints`);
+        fkCols.forEach(col => {
+            const match = col.fk_ref.match(/^(\w+)\((\w+)\)$/);
+            if (match) {
+                lines.push(`ALTER TABLE \`${tableName}\``);
+                lines.push(`    ADD CONSTRAINT \`fk_${tableName}_${col.name}\``);
+                lines.push(`    FOREIGN KEY (\`${col.name}\`) REFERENCES \`${match[1]}\`(\`${match[2]}\`);`);
+            }
+        });
+    }
+ 
+    return lines.join('\n');
+}
+ 
+/* SQL syntax highlighting */
+function tbHighlightSQL(sql) {
+    return sql
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/(CREATE TABLE IF NOT EXISTS|ALTER TABLE|ADD CONSTRAINT|ADD FOREIGN KEY|REFERENCES|ON DELETE SET NULL|ON UPDATE CURRENT_TIMESTAMP|DEFAULT|AUTO_INCREMENT|PRIMARY KEY|NOT NULL|FOREIGN KEY)/g,
+            '<span class="sql-kw">$1</span>')
+        .replace(/`([^`]+)`/g, '<span class="sql-tbl">`$1`</span>')
+        .replace(/\b(VARCHAR|TEXT|LONGTEXT|INT|BIGINT|SMALLINT|TINYINT|DECIMAL|FLOAT|DOUBLE|DATE|DATETIME|TIMESTAMP|YEAR)(\([^)]*\))?/g,
+            '<span class="sql-typ">$&</span>')
+        .replace(/(--[^\n]*)/g, '<span class="sql-cmt">$1</span>');
+}
+ 
+// ─────────────────────────────────────────────────────────────────────────────
+// CREATE TABLE — POST to backend
+// ─────────────────────────────────────────────────────────────────────────────
+async function tbCreateTable() {
+    const d   = tbGetTableData();
+    const btn = document.getElementById('tb-create-btn');
+ 
+    // Run SQL gen as a final pre-flight check
+    const sql = tbGenerateSQL(d);
+    if (!sql) return;   // error already shown
+ 
+    btn.disabled  = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+ 
+    // ── Payload uses BACKEND field names (key_type, fk_ref, auto_increment) ──
+    const payload = {
+        table_name:  d.tableName,
+        report_name: d.reportName,
+        table_type:  d.tableType,
+        department:  d.department,
+        columns:     d.columns,   // already has key_type / fk_ref / auto_increment
+    };
+ 
+    try {
+        const res = await fetch('/api/table_builder/create', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(payload)
+        });
+        const out    = await res.json();
+        const banner = document.getElementById('tb-result-banner');
+ 
+        if (res.ok) {
+            banner.style.display    = '';
+            banner.style.background = '#d1fae5';
+            banner.style.border     = '1.5px solid #6ee7b7';
+            banner.style.color      = '#065f46';
+            banner.innerHTML = `
+                <i class="fas fa-check-circle" style="font-size:1.1rem;"></i>
+                Table <strong>${d.tableName}</strong> created successfully!
+                ${d.reportName ? ` Registered as "<strong>${d.reportName}</strong>".` : ''}
+                ${out.meta_rows ? `<br><span style="font-size:.82rem;">Column metadata saved (${out.meta_rows} rows). PK columns will be hidden in Excel templates.</span>` : ''}
+            `;
+            btn.innerHTML        = '<i class="fas fa-check"></i> Created!';
+            btn.style.background = 'var(--success)';
+            showToast(`Table "${d.tableName}" created successfully!`, 'success');
+ 
+            await loadDepartments();
+        } else {
+            banner.style.display    = '';
+            banner.style.background = '#fef2f2';
+            banner.style.border     = '1.5px solid #fca5a5';
+            banner.style.color      = '#991b1b';
+            banner.innerHTML = `
+                <i class="fas fa-times-circle"></i>
+                Failed: ${escapeHtml(out.error || 'Unknown error')}
+            `;
+            btn.disabled         = false;
+            btn.innerHTML        = '<i class="fas fa-magic"></i> Try Again';
+            btn.style.background = '';
+        }
+    } catch (e) {
+        showToast('Network error: ' + e.message, 'error');
+        btn.disabled         = false;
+        btn.innerHTML        = '<i class="fas fa-magic"></i> Create Table';
+        btn.style.background = '';
+    }
+}
+ 
+// ─────────────────────────────────────────────────────────────────────────────
+// RESET
+// ─────────────────────────────────────────────────────────────────────────────
+function tbReset() {
+    document.getElementById('tb-table-name').value  = '';
+    document.getElementById('tb-report-name').value = '';
+    document.getElementById('tb-department').value  = '';
+    document.querySelectorAll('input[name="tb-table-type"]').forEach(r => r.checked = false);
+    document.getElementById('tb-column-list').innerHTML = '';
+    document.getElementById('tb-table-name-err').style.display = 'none';
+ 
+    ['tb-type-transaction-label','tb-type-master-label'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.style.borderColor = ''; el.style.background = ''; }
+    });
+ 
+    tbColIdSeq = 0;
+ 
+    [1, 2, 3].forEach(n => {
+        const c = document.getElementById(`tb-circle-${n}`);
+        const s = document.getElementById(`tb-step-${n}`);
+        const l = document.getElementById(`tb-line-${n}`);
+        if (c) { c.textContent = n; c.style.background = ''; c.style.color = ''; }
+        if (s)   s.className = 'tb-step';
+        if (l)   l.className = 'tb-step-line';
+    });
+ 
+    document.getElementById('tb-panel-1').style.display = '';
+    document.getElementById('tb-panel-2').style.display = 'none';
+    document.getElementById('tb-panel-3').style.display = 'none';
+ 
+    document.getElementById('tb-step-1').classList.add('active');
+    document.getElementById('tb-circle-1').style.background = 'var(--primary)';
+    document.getElementById('tb-circle-1').style.color      = 'white';
+ 
+    tbCurrentStep = 1;
+}
+ 
+/* Populate department dropdown whenever the Table Builder tab opens */
+function tbPopulateDepartments() {
+    const sel = document.getElementById('tb-department');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">-- All departments / Not applicable --</option>';
+    departments.forEach(d => {
+        const opt      = document.createElement('option');
+        opt.value      = d;
+        opt.textContent = d;
+        sel.appendChild(opt);
+    });
+}
+ 
+/* Mark display label as user-edited so auto-fill from column name stops */
+document.addEventListener('input', e => {
+    if (e.target.id && e.target.id.startsWith('tb-col-label-')) {
+        e.target.dataset.userEdited = '1';
+    }
+});
+</script>
+ 
+<!--
+  ════════════════════════════════════════════════════
+  ALSO UPDATE the column preview table header in Step 3.
+ 
+  Find this thead in tb-panel-3:
+    <th>#</th>
+    <th>Column Name</th>
+    <th>Display Label</th>
+    <th>Data Type</th>
+    <th>Nullable</th>
+    <th>Default</th>
+    <th>FK Reference</th>
+ 
+  Replace with:
+    <th>#</th>
+    <th>Column Name</th>
+    <th>Display Label</th>
+    <th>Data Type</th>
+    <th>Nullable</th>
+    <th>Default</th>
+    <th>Key Type</th>
+    <th>FK Reference</th>
+ 
+  (adds the Key Type column so you can see PK/FK badges in the preview)
+  ════════════════════════════════════════════════════
+-->
+ 
+<!--
+  ════════════════════════════════════════════════════
+  MIGRATION: add key_type column to tbl_column_metadata
+  Run this once in MySQL if the column doesn't exist yet:
+ 
+  ALTER TABLE tbl_column_metadata
+      ADD COLUMN key_type VARCHAR(20) DEFAULT 'NONE'
+      AFTER ordinal;
+ 
+  ════════════════════════════════════════════════════
+-->
 </body>
 </html>

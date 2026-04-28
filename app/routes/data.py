@@ -88,287 +88,7 @@ def download_register_template(cursor, conn):
         print(tb)
         return jsonify({"error": "Template generation failed"}), 500
 
-#### JSON UPLOAD HANDLER ###
-# def _process_upload_transaction_json(cursor, conn, table, file_obj):
-#     """
-#     Process uploaded transaction JSON file.
-#     Uses SAME config and helpers as Excel upload.
-#     """
-#     if "username" not in session:
-#         return {"error": "Unauthorized"}, 401
 
-#     replace_existing = (
-#         request.form.get("replace_existing", "false").lower() == "true"
-#     )
-
-#     # -------------------------------------------------
-#     # Load DB columns
-#     # -------------------------------------------------
-#     try:
-#         cursor.execute(f"SHOW COLUMNS FROM {table}")
-#         cols_info = cursor.fetchall()
-#         db_cols = [c["Field"] for c in cols_info]
-#     except Exception as e:
-#         tb = traceback.format_exc()
-#         log_error_db(
-#             session.get("username"),
-#             request.path,
-#             str(e),
-#             tb,
-#             current_app.config.get("CONFIG_OBJ")
-#         )
-#         return {"error": f"Target table error: {e}"}, 400
-
-#     # -------------------------------------------------
-#     # Read JSON
-#     # -------------------------------------------------
-#     try:
-#         file_obj.seek(0)
-#         raw = json.load(file_obj)
-        
-#         # Handle wrapped format: {"table_name": [rows]}
-#         if isinstance(raw, dict):
-#             if len(raw) == 1 and isinstance(list(raw.values())[0], list):
-#                 raw = list(raw.values())[0]
-#             else:
-#                 raw = [raw]
-        
-#         if not isinstance(raw, list) or not raw:
-#             return {"error": "JSON has no rows or invalid format"}, 400
-            
-#         df = pd.DataFrame(raw)
-        
-#     except Exception as e:
-#         tb = traceback.format_exc()
-#         log_error_db(
-#             session.get("username"),
-#             request.path,
-#             str(e),
-#             tb,
-#             current_app.config.get("CONFIG_OBJ")
-#         )
-#         return {"error": f"Unable to read JSON: {e}"}, 400
-
-#     if df.empty:
-#         return {"error": "Uploaded file is empty"}, 400
-
-#     df.fillna("", inplace=True)
-
-#     # -------------------------------------------------
-#     # Metadata mapping (SAME AS EXCEL)
-#     # -------------------------------------------------
-#     header_to_col = load_metadata_for_table(cursor, table)
-#     for c in db_cols:
-#         header_to_col.setdefault(c.lower(), c)
-#         header_to_col.setdefault(c.replace("_", " ").lower(), c)
-
-#     parsed_rows = []
-
-#     # -------------------------------------------------
-#     # Parse JSON rows (SAME AS EXCEL)
-#     # -------------------------------------------------
-#     for _, row in df.iterrows():
-#         row_data = {}
-
-#         for header in df.columns:
-#             raw_val = row[header]
-#             if str(raw_val).strip() == "":
-#                 continue
-
-#             key = header.strip().lower()
-#             col = header_to_col.get(key) or header_to_col.get(key.replace(" ", "_"))
-
-#             if not col or col not in db_cols:
-#                 continue
-
-#             if col == "id" or is_audit_column(col) or is_refno_column(col):
-#                 continue
-
-#             value = raw_val
-
-#             if col == "year_id":
-#                 value = resolve_year(cursor, value)
-#             elif col.endswith("_id"):
-#                 value = fk_value_to_id(cursor, col, value, LOOKUP_CONFIG)
-#             elif isinstance(value, str):
-#                 value = value.strip() or None
-
-#             row_data[col] = value
-
-#         if row_data:
-#             parsed_rows.append(row_data)
-
-#     if not parsed_rows:
-#         return {"error": "No valid rows found to insert"}, 400
-
-#     # -------------------------------------------------
-#     # DUPLICATE CHECK (SAME AS EXCEL)
-#     # -------------------------------------------------
-#     if not replace_existing:
-#         try:
-#             cursor.execute(f"SHOW INDEX FROM {table} WHERE Non_unique = 0")
-#             indexes = cursor.fetchall()
-
-#             unique_cols = [
-#                 i["Column_name"]
-#                 for i in indexes
-#                 if i["Key_name"] != "PRIMARY"
-#             ]
-
-#             if unique_cols:
-#                 sample = parsed_rows[0]
-#                 where = []
-#                 values = []
-
-#                 for col in unique_cols:
-#                     if col in sample:
-#                         where.append(f"{col} = %s")
-#                         values.append(sample[col])
-
-#                 if where:
-#                     sql = f"""
-#                         SELECT 1
-#                         FROM {table}
-#                         WHERE {' AND '.join(where)}
-#                         LIMIT 1
-#                     """
-#                     cursor.execute(sql, values)
-#                     if cursor.fetchone():
-#                         return {
-#                             "error": "Data already exists. Replace existing data?"
-#                         }, 409
-
-#         except Exception as e:
-#             tb = traceback.format_exc()
-#             log_error_db(
-#                 session.get("username"),
-#                 request.path,
-#                 str(e),
-#                 tb,
-#                 current_app.config.get("CONFIG_OBJ")
-#             )
-#             return {"error": "Duplicate validation failed"}, 500
-
-#     # -------------------------------------------------
-#     # INSERT + UPSERT (SAME AS EXCEL)
-#     # -------------------------------------------------
-#     try:
-#         now = datetime.datetime.now()
-        
-#         # ✅ FIXED: Match Excel logic - delete by filename too
-#         filename = secure_filename(file_obj.filename) if hasattr(file_obj, 'filename') else 'upload.json'
-        
-#         if replace_existing:
-#     # Delete only the rows uploaded by THIS specific file previously
-#             cursor.execute("""
-#                 SELECT id FROM excel_uploads
-#                 WHERE table_name = %s 
-#                 AND department = %s 
-#                 AND filename = %s
-#                 """, (table, session.get("department"), filename))
-    
-#             old_upload_ids = [row['id'] for row in cursor.fetchall()]
-    
-#         if old_upload_ids:
-#             # Delete old data rows linked to this file's previous uploads
-#             placeholders = ','.join(['%s'] * len(old_upload_ids))
-#             cursor.execute(f"""
-#                 DELETE FROM {table}
-#                 WHERE upload_id IN ({placeholders})
-#                 """, old_upload_ids)
-            
-#             # Delete old upload records
-#             cursor.execute(f"""
-#                 DELETE FROM excel_uploads
-#                 WHERE id IN ({placeholders})
-#                 """, old_upload_ids)
-
-#             # Insert upload log
-#             cursor.execute(
-#                 """
-#                 INSERT INTO excel_uploads
-#                 (filename, table_name, uploaded_by, department)
-#                 VALUES (%s, %s, %s, %s)
-#                 """,
-#                 (
-#                     secure_filename(file_obj.filename),
-#                     table,
-#                     session.get("username"),
-#                     session.get("department"),
-#                 ),
-#             )
-#             upload_id = cursor.lastrowid
-
-#             # Check columns
-#             all_cols = set()
-#             for r in parsed_rows:
-#                 all_cols.update(r.keys())
-
-#             if "upload_id" in db_cols:
-#                 all_cols.add("upload_id")
-#             if "is_approved" in db_cols:
-#                 all_cols.add("is_approved")
-#             if "updated_by" in db_cols:
-#                 all_cols.add("updated_by")
-#             if "updated_date" in db_cols:
-#                 all_cols.add("updated_date")
-#             # ✅ FIXED: Only add status_ if it exists in the table
-#             # if "status_" in db_cols:
-#             #     all_cols.add("status_")
-
-#             all_cols = sorted(all_cols)
-
-#             insert_cols = ", ".join(f"{c}" for c in all_cols)
-#             placeholders = ", ".join(["%s"] * len(all_cols))
-
-#             update_cols = []
-#             for c in all_cols:
-#                 if c.endswith("_num") or c in (
-#                     "updated_by", "updated_date", "upload_id", "is_approved"#, "status_"  # ✅ Added status_ here
-#                 ):
-#                     update_cols.append(f"{c} = VALUES({c})")
-
-#             update_sql = ", ".join(update_cols)
-
-#             sql = f"""
-#                 INSERT INTO {table} ({insert_cols})
-#                 VALUES ({placeholders})
-#                 ON DUPLICATE KEY UPDATE
-#                 {update_sql}
-#             """
-
-#             values = []
-#             for r in parsed_rows:
-#                 row = dict(r)
-#                 row["upload_id"] = upload_id
-#                 row["is_approved"] = None
-#                 row["updated_by"] = session.get("username")
-#                 row["updated_date"] = now
-#                 # ✅ FIXED: Only set status_ if column exists
-#                 #if "status_" in db_cols:
-#                 row["status_"] = 1
-                    
-#                 values.append(tuple(row.get(c) for c in all_cols))
-
-#             cursor.executemany(sql, values)
-#             conn.commit()
-
-#             return {
-#                 "message": f"{len(values)} rows uploaded successfully",
-#                 "upload_id": upload_id
-#             }, 200
-
-#     except Exception as e:
-#         conn.rollback()
-#         tb = traceback.format_exc()
-#         log_error_db(
-#             session.get("username"),
-#             request.path,
-#             str(e),
-#             tb,
-#             current_app.config.get("CONFIG_OBJ")
-#         )
-#         return {"error": str(e)}, 500 
 
 def _process_upload_transaction_json(cursor, conn, table, file_obj):
     """
@@ -996,7 +716,25 @@ def download_excel(cursor, conn):
     hide_cols = request.args.get("hide_cols", "")
     hide_cols = [c.strip() for c in hide_cols.split(",") if c.strip()]
 
+    # Always hide these system columns
+    SYSTEM_COLS = {
+        'id', 'upload_id', 'created_by', 'created_date',
+        'updated_by', 'updated_date', 'status_', 'is_approved', 'is_active'
+    }
+
     try:
+        # -----------------------------------
+        # Fetch custom display labels
+        # -----------------------------------
+        cursor.execute("""
+            SELECT column_name, display_label
+            FROM tbl_column_metadata
+            WHERE table_name = %s
+            ORDER BY ordinal
+        """, (table,))
+        label_map = {row['column_name']: row['display_label']
+                     for row in cursor.fetchall()}
+
         # -----------------------------------
         # build SELECT with FK joins
         # -----------------------------------
@@ -1004,21 +742,17 @@ def download_excel(cursor, conn):
         joins = []
 
         for fk_col, cfg in LOOKUP_CONFIG.items():
-
             master_table, name_col, id_col = cfg
 
-            # check FK column exists in this table
             cursor.execute(f"SHOW COLUMNS FROM {table} LIKE %s", (fk_col,))
             if not cursor.fetchone():
                 continue
 
             alias = f"m_{fk_col}"
-
             joins.append(
                 f"LEFT JOIN {master_table} {alias} "
                 f"ON t.{fk_col} = {alias}.{id_col}"
             )
-
             select_parts.append(
                 f"{alias}.{name_col} AS {fk_col}_name"
             )
@@ -1033,28 +767,83 @@ def download_excel(cursor, conn):
         rows = cursor.fetchall()
         df = pd.DataFrame(rows)
 
+        if df.empty:
+            # Still return an empty Excel with correct headers
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+                df.to_excel(writer, index=False)
+            output.seek(0)
+            return send_file(
+                output,
+                as_attachment=True,
+                download_name=filename,
+                mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+
         # -----------------------------------
-        # replace fk_id with fk_name
+        # Replace fk_id with fk_name
         # -----------------------------------
         for fk_col in LOOKUP_CONFIG.keys():
             name_col = fk_col + "_name"
-
             if name_col in df.columns:
                 df[fk_col] = df[name_col]
                 df.drop(columns=[name_col], inplace=True)
 
         # -----------------------------------
-        # hide audit columns
+        # Drop system columns + any extra hide_cols
         # -----------------------------------
-        if not df.empty and hide_cols:
-            df.drop(columns=[c for c in hide_cols if c in df.columns], inplace=True)
+        all_to_hide = SYSTEM_COLS | set(hide_cols)
+        df.drop(columns=[c for c in all_to_hide if c in df.columns], inplace=True)
 
         # -----------------------------------
-        # export excel
+        # Rename columns using display labels
+        # -----------------------------------
+        df.rename(columns=lambda col: label_map.get(col, col), inplace=True)
+
+        # -----------------------------------
+        # Export Excel with styling
         # -----------------------------------
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-            df.to_excel(writer, index=False)
+            df.to_excel(writer, index=False, sheet_name="Data")
+
+            workbook  = writer.book
+            worksheet = writer.sheets["Data"]
+
+            # Header style
+            header_fmt = workbook.add_format({
+                'bold':     True,
+                'bg_color': '#1e5a8e',
+                'font_color': '#FFFFFF',
+                'border':   1,
+                'align':    'center',
+                'valign':   'vcenter',
+            })
+            # Data cell style
+            cell_fmt = workbook.add_format({
+                'border': 1,
+                'align':  'left',
+                'valign': 'vcenter',
+            })
+
+            # Write headers with style
+            for col_num, col_name in enumerate(df.columns):
+                worksheet.write(0, col_num, col_name, header_fmt)
+                # Auto-fit column width
+                max_len = max(
+                    len(str(col_name)),
+                    df.iloc[:, col_num].astype(str).str.len().max()
+                    if not df.empty else 0
+                )
+                worksheet.set_column(col_num, col_num, min(max_len + 4, 40))
+
+            # Write data rows with style
+            for row_num, row in enumerate(df.itertuples(index=False), start=1):
+                for col_num, value in enumerate(row):
+                    worksheet.write(row_num, col_num, value, cell_fmt)
+
+            # Freeze the header row
+            worksheet.freeze_panes(1, 0)
 
         output.seek(0)
 
@@ -1074,8 +863,6 @@ def download_excel(cursor, conn):
             log_error_db(session.get("username"), request.path, str(e), tb, config_obj)
 
         return jsonify({"error": str(e)}), 500
-
-
 @data_bp.route("/uploads", methods=["GET"])
 @with_db_connection
 def uploads_list(cursor, conn):
@@ -1235,64 +1022,69 @@ def uploads_delete(cursor, conn, upload_id):
     try:
         # 1️⃣ Fetch upload info
         cursor.execute(
-            "SELECT table_name, department FROM excel_uploads WHERE id=%s",
+            "SELECT table_name, department, uploaded_by, status_ FROM excel_uploads WHERE id=%s",
             (upload_id,)
         )
         upload = cursor.fetchone()
-			   
-												   
 
         if not upload:
-														 
             return jsonify({"error": "Upload not found"}), 404
 
         table_name = upload["table_name"]
-				 
-										  
 
         # 2️⃣ Permission check
         if session.get("role") != "admin":
             if upload["department"] != session.get("department"):
                 return jsonify({"error": "Permission denied"}), 403
+            # Users cannot delete approved uploads
+            if upload["status_"] == 1:
+                return jsonify({"error": "Approved uploads cannot be deleted"}), 403
 
-        # 3️⃣ Check if table existed BEFORE upload (JSON)
+        # 3️⃣ Delete only THIS upload's rows using upload_id FK
+        #    NEVER delete all rows, NEVER drop the table
+        #    First check if the data table still exists and has upload_id column
         cursor.execute("""
             SELECT COUNT(*) AS cnt
-            FROM information_schema.tables
-            WHERE table_schema = DATABASE()
-              AND table_name = %s
-              AND create_time < (
-                  SELECT uploaded_on FROM excel_uploads WHERE id = %s
-              )
-        """, (table_name, upload_id))
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME   = %s
+              AND COLUMN_NAME  = 'upload_id'
+        """, (table_name,))
 
-        existed_before = cursor.fetchone()["cnt"] > 0
+        has_upload_id_col = cursor.fetchone()["cnt"] > 0
 
-        # 4️⃣ Delete logic
-        if existed_before:
-            # JSON upload → delete values only
-            cursor.execute(f"DELETE FROM `{table_name}`")
-        else:
-            # Excel upload → drop table
-            cursor.execute(f"DROP TABLE IF EXISTS `{table_name}`")
-            print(f" Table {table_name} dropped as it was created by the upload.")
+        rows_deleted = 0
+        if has_upload_id_col:
+            cursor.execute(
+                f"DELETE FROM `{table_name}` WHERE upload_id = %s",
+                (upload_id,)
+            )
+            rows_deleted = cursor.rowcount
 
-        # 5️⃣ Remove upload record
+        # 4️⃣ Clean up row remarks for this upload
+        try:
+            cursor.execute(
+                "DELETE FROM row_remarks WHERE upload_id = %s",
+                (upload_id,)
+            )
+        except Exception:
+            pass  # table may not exist — non-critical
+
+        # 5️⃣ Remove the upload tracking record
         cursor.execute(
-            "DELETE FROM excel_uploads WHERE id=%s",
+            "DELETE FROM excel_uploads WHERE id = %s",
             (upload_id,)
         )
 
         conn.commit()
-        return jsonify({"message": "Upload deleted successfully"})
-							
-																							 
-									 
+        return jsonify({
+            "message": f"Upload deleted successfully. {rows_deleted} data row(s) removed."
+        })
 
     except Exception as e:
         conn.rollback()
         return jsonify({"error": str(e)}), 500
-
+    
 ##REPORT GENERATION FILTERS##
 
 @data_bp.route("/api/years")
